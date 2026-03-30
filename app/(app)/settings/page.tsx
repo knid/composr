@@ -13,7 +13,7 @@ export default function SettingsPage() {
   const [revealedKey, setRevealedKey] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch("/api/api-keys").then((r) => r.json()).then(setKeys)
+    fetch("/api/api-keys").then((r) => r.json()).then((data) => { if (Array.isArray(data)) setKeys(data) })
   }, [])
 
   async function createKey() {
@@ -25,7 +25,7 @@ export default function SettingsPage() {
     const data = await res.json()
     setRevealedKey(data.key)
     setNewKeyName("")
-    fetch("/api/api-keys").then((r) => r.json()).then(setKeys)
+    fetch("/api/api-keys").then((r) => r.json()).then((data) => { if (Array.isArray(data)) setKeys(data) })
   }
 
   return (
