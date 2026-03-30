@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm"
 import { NextResponse } from "next/server"
 import crypto from "crypto"
 import { checkRateLimit } from "@/lib/rate-limit"
+import { trackUsage } from "@/lib/usage"
 
 async function authenticateSDK(req: Request) {
   const authHeader = req.headers.get("authorization")
@@ -38,6 +39,8 @@ export async function POST(req: Request) {
       }
     )
   }
+
+  void trackUsage(apiKey.teamId, "score")
 
   const body = await req.json()
   const { assemblyId, metrics } = body

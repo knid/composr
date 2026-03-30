@@ -171,3 +171,14 @@ export const evalConfigs = pgTable("eval_configs", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 })
+
+// usage_records
+export const usageRecords = pgTable("usage_records", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  teamId: uuid("team_id").notNull().references(() => teams.id),
+  endpoint: text("endpoint").notNull(), // "config", "track", "score"
+  count: integer("count").notNull().default(0),
+  date: text("date").notNull(), // "2026-03-30" — daily bucket
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+})
