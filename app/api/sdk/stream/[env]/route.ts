@@ -1,17 +1,5 @@
-import { db } from "@/lib/db"
-import { apiKeys } from "@/lib/schema"
-import { eq } from "drizzle-orm"
 import { configEvents } from "@/lib/config-events"
-import crypto from "crypto"
-
-async function authenticateSDK(req: Request) {
-  const authHeader = req.headers.get("authorization")
-  if (!authHeader?.startsWith("Bearer ")) return null
-  const key = authHeader.slice(7)
-  const hash = crypto.createHash("sha256").update(key).digest("hex")
-  const [apiKey] = await db.select().from(apiKeys).where(eq(apiKeys.keyHash, hash))
-  return apiKey ?? null
-}
+import { authenticateSDK } from "@/lib/auth-sdk"
 
 export async function GET(
   req: Request,
