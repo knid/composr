@@ -3,6 +3,7 @@ export interface ComposrConfig {
   environment?: string
   baseUrl?: string
   syncIntervalMs?: number
+  useSSE?: boolean
 }
 
 export interface ComposeContext {
@@ -29,6 +30,13 @@ export interface TrackPayload {
   output: string
   model?: string
   latencyMs?: number
+  compositionId?: string
+  compositionVersion?: number
+  environment?: string
+  variantId?: string | null
+  context?: Record<string, any>
+  resolvedBlocks?: string[]
+  tokenCount?: number
 }
 
 export interface SDKConfig {
