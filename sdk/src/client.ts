@@ -6,19 +6,27 @@ export class Composr {
   private baseUrl: string
   private environment: string
   private syncInterval: number
+  private useSSE: boolean
   private config: SDKConfig | null = null
   private syncTimer: ReturnType<typeof setInterval> | null = null
+  private eventSource: EventSource | null = null
 
   constructor(options: ComposrConfig) {
     this.apiKey = options.apiKey
     this.baseUrl = options.baseUrl ?? "https://app.composr.dev"
     this.environment = options.environment ?? "prod"
     this.syncInterval = options.syncIntervalMs ?? 30_000
+    this.useSSE = options.useSSE ?? (typeof EventSource !== "undefined")
   }
 
   async initialize(): Promise<void> {
     await this.fetchConfig()
-    this.syncTimer = setInterval(() => this.fetchConfig(), this.syncInterval)
+
+    if (this.useSSE && typeof EventSource !== "undefined") {
+      this.connectSSE()
+    } else {
+      this.startPolling()
+    }
   }
 
   private async fetchConfig(): Promise<void> {
@@ -27,6 +35,36 @@ export class Composr {
     })
     if (!res.ok) throw new Error(`Composr: config fetch failed (${res.status})`)
     this.config = await res.json()
+  }
+
+  private connectSSE(): void {
+    try {
+      const url = `${this.baseUrl}/api/sdk/stream/${this.environment}?token=${encodeURIComponent(this.apiKey)}`
+      this.eventSource = new EventSource(url)
+
+      this.eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          if (data.type === "config_updated") {
+            this.fetchConfig().catch(() => {})
+          }
+        } catch {}
+      }
+
+      this.eventSource.onerror = () => {
+        this.eventSource?.close()
+        this.eventSource = null
+        this.startPolling()
+      }
+    } catch {
+      this.startPolling()
+    }
+  }
+
+  private startPolling(): void {
+    if (!this.syncTimer) {
+      this.syncTimer = setInterval(() => this.fetchConfig().catch(() => {}), this.syncInterval)
+    }
   }
 
   async compose(name: string, context: ComposeContext = {}): Promise<ComposeResult> {
@@ -57,6 +95,13 @@ export class Composr {
   }
 
   destroy(): void {
-    if (this.syncTimer) clearInterval(this.syncTimer)
+    if (this.syncTimer) {
+      clearInterval(this.syncTimer)
+      this.syncTimer = null
+    }
+    if (this.eventSource) {
+      this.eventSource.close()
+      this.eventSource = null
+    }
   }
 }

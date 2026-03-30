@@ -5,7 +5,21 @@ export async function GET(
   req: Request,
   { params }: { params: Promise<{ env: string }> }
 ) {
-  const apiKey = await authenticateSDK(req)
+  // EventSource doesn't support Authorization headers — also accept token as query param
+  const url = new URL(req.url)
+  const queryToken = url.searchParams.get("token")
+  let apiKey
+  if (queryToken) {
+    const crypto = await import("crypto")
+    const { db } = await import("@/lib/db")
+    const { apiKeys } = await import("@/lib/schema")
+    const { eq } = await import("drizzle-orm")
+    const hash = crypto.createHash("sha256").update(queryToken).digest("hex")
+    const [found] = await db.select().from(apiKeys).where(eq(apiKeys.keyHash, hash))
+    apiKey = found ?? null
+  } else {
+    apiKey = await authenticateSDK(req)
+  }
   if (!apiKey) {
     return new Response("Unauthorized", { status: 401 })
   }

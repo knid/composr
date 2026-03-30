@@ -52,4 +52,39 @@ describe("Composr client", () => {
       expect(body.metrics).toEqual({ buildSuccess: true, errorCount: 0 })
     })
   })
+
+  describe("SSE configuration", () => {
+    it("defaults useSSE to false when EventSource is not available", () => {
+      const client = new Composr({ apiKey: "pk_test_123" })
+      expect(client).toBeDefined()
+    })
+
+    it("respects explicit useSSE: false", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          version: "1",
+          environment: "dev",
+          blocks: {},
+          compositions: [],
+        }),
+      })
+
+      const client = new Composr({
+        apiKey: "pk_test_123",
+        baseUrl: "http://localhost:3000",
+        useSSE: false,
+      })
+
+      await client.initialize()
+
+      expect(mockFetch).toHaveBeenCalledTimes(1)
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:3000/api/sdk/config/prod",
+        expect.any(Object)
+      )
+
+      client.destroy()
+    })
+  })
 })
