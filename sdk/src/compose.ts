@@ -1,5 +1,6 @@
 import type { SDKConfig, ComposeContext, ComposeResult } from "./types"
 import { selectVariant } from "./hash"
+import { evaluateExpression } from "./expression-parser"
 
 export function compose(
   config: SDKConfig,
@@ -78,6 +79,14 @@ export function compose(
         for (const e of (edgesBySource.get(node.id) ?? []).filter((e: any) => e.sourceHandle === selectedVariant.name)) {
           walk(e.target)
         }
+      }
+      return
+    } else if (node.type === "ifExpression") {
+      const expression = (node.data.expression as string) ?? ""
+      const value = evaluateExpression(expression, fullContext)
+      const handle = value ? "true" : "false"
+      for (const e of (edgesBySource.get(node.id) ?? []).filter((e: any) => e.sourceHandle === handle)) {
+        walk(e.target)
       }
       return
     }

@@ -1,4 +1,5 @@
 import { selectVariant } from "./hash"
+import { evaluateExpression } from "./expression-parser"
 
 interface GraphNode {
   id: string
@@ -102,6 +103,19 @@ export function assembleGraph(
           for (const edge of matchingEdges) {
             walk(edge.target)
           }
+        }
+        return
+      }
+
+      case "ifExpression": {
+        const expression = node.data.expression as string ?? ""
+        const value = evaluateExpression(expression, context)
+        const handleId = value ? "true" : "false"
+        const matchingEdges = (edgesBySource.get(node.id) ?? []).filter(
+          (e) => e.sourceHandle === handleId
+        )
+        for (const edge of matchingEdges) {
+          walk(edge.target)
         }
         return
       }

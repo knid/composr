@@ -168,6 +168,25 @@ describe("assembleGraph", () => {
     expect(["role", "auth-rules"]).toContain(firstResult.blocks[0])
   })
 
+  it("evaluates expression IF node", () => {
+    const nodes = [
+      { id: "start", type: "start", data: {} },
+      { id: "if-expr", type: "ifExpression", data: { expression: '_time.hour >= 18 && projectType == "mobile"' } },
+      { id: "n-evening", type: "block", data: { blockId: "b-mobile" } },
+      { id: "output", type: "output", data: {} },
+    ]
+    const edges = [
+      { id: "e1", source: "start", target: "if-expr" },
+      { id: "e2", source: "if-expr", target: "n-evening", sourceHandle: "true" },
+      { id: "e3", source: "if-expr", target: "output", sourceHandle: "false" },
+    ]
+    const result = assembleGraph(nodes, edges, blocks, { projectType: "mobile", _time: { hour: 20 } })
+    expect(result.blocks).toEqual(["mobile-rules"])
+
+    const result2 = assembleGraph(nodes, edges, blocks, { projectType: "mobile", _time: { hour: 10 } })
+    expect(result2.blocks).toEqual([])
+  })
+
   it("supports nested context paths", () => {
     const nodes = [
       { id: "start", type: "start", data: {} },
