@@ -131,13 +131,13 @@ console.log(result.blocks)     // ["role", "design-philosophy", "framework-rules
 **Go:**
 
 ```go
-pk := promptkit.New(promptkit.Config{
+pk := composr.New(composr.Config{
     APIKey:      "pk_live_...",
     Environment: "prod",
 })
 defer pk.Close()
 
-result, _ := pk.Compose("builder", promptkit.ComposeContext{
+result, _ := pk.Compose("builder", composr.ComposeContext{
     "projectType": "ecommerce",
     "hasAuth":     true,
     "outputMode":  "chat",
@@ -275,7 +275,7 @@ Composr is open source. Deploy it anywhere:
 
 ```bash
 git clone https://github.com/composr/composr
-cd promptkit
+cd composr
 cp .env.example .env.local
 # Edit .env.local with your Clerk + Neon credentials
 npm install
@@ -292,7 +292,7 @@ Or deploy to Vercel in one click:
 ## Architecture
 
 ```
-promptkit/
+composr/
 ├── app/                    # Next.js 16 App Router
 │   ├── (app)/              # Authenticated pages (dashboard, editor, etc.)
 │   └── api/                # REST API (blocks, compositions, SDK endpoints)
@@ -338,7 +338,7 @@ go get github.com/composr/sdk-go
 
 | Method | Description |
 |--------|-------------|
-| `promptkit.New(config)` | Create client |
+| `composr.New(config)` | Create client |
 | `pk.Compose(name, ctx)` | Assemble a prompt locally (<1ms) |
 | `pk.Track(id, payload)` | Send LLM output for auto-scoring |
 | `pk.Score(id, metrics)` | Send manual metrics |
@@ -385,7 +385,7 @@ We love contributions. Check out the [Contributing Guide](CONTRIBUTING.md) for s
 
 ```bash
 git clone https://github.com/composr/composr
-cd promptkit
+cd composr
 npm install
 cp .env.example .env.local
 npm run dev

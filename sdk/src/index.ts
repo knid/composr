@@ -1,7 +1,7 @@
-export { PromptKit } from "./client"
+export { Composr } from "./client"
 export { compose } from "./compose"
 export type {
-  PromptKitConfig,
+  ComposrConfig,
   ComposeContext,
   ComposeResult,
   TrackPayload,

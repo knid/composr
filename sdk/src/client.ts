@@ -1,7 +1,7 @@
-import type { PromptKitConfig, ComposeContext, ComposeResult, TrackPayload, SDKConfig } from "./types"
+import type { ComposrConfig, ComposeContext, ComposeResult, TrackPayload, SDKConfig } from "./types"
 import { compose } from "./compose"
 
-export class PromptKit {
+export class Composr {
   private apiKey: string
   private baseUrl: string
   private environment: string
@@ -9,7 +9,7 @@ export class PromptKit {
   private config: SDKConfig | null = null
   private syncTimer: ReturnType<typeof setInterval> | null = null
 
-  constructor(options: PromptKitConfig) {
+  constructor(options: ComposrConfig) {
     this.apiKey = options.apiKey
     this.baseUrl = options.baseUrl ?? "https://app.composr.dev"
     this.environment = options.environment ?? "prod"

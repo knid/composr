@@ -1,4 +1,4 @@
-package promptkit
+package composr
 
 import (
 	"testing"

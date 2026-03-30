@@ -1,4 +1,4 @@
-export interface PromptKitConfig {
+export interface ComposrConfig {
   apiKey: string
   environment?: string
   baseUrl?: string

@@ -1,9 +1,9 @@
-// Package promptkit provides the official Go SDK for Composr — the prompt
+// Package composr provides the official Go SDK for Composr — the prompt
 // compiler for AI-first teams.
 //
 // It connects to the Composr API, syncs composition config in the background,
 // and assembles prompts locally using a graph-walking engine.
-package promptkit
+package composr
 
 import (
 	"bytes"
@@ -14,9 +14,9 @@ import (
 	"time"
 )
 
-// PromptKit is the main SDK client. It manages config sync and provides
+// Composr is the main SDK client. It manages config sync and provides
 // methods to compose prompts, track LLM outputs, and send manual scores.
-type PromptKit struct {
+type Composr struct {
 	apiKey       string
 	baseURL      string
 	environment  string
@@ -27,10 +27,10 @@ type PromptKit struct {
 	httpClient   *http.Client
 }
 
-// New creates a new PromptKit client with the given configuration.
+// New creates a new Composr client with the given configuration.
 // Call Initialize to fetch config and start background sync, or simply
 // call Compose which will auto-initialize on first use.
-func New(cfg Config) *PromptKit {
+func New(cfg Config) *Composr {
 	if cfg.Environment == "" {
 		cfg.Environment = "prod"
 	}
@@ -41,7 +41,7 @@ func New(cfg Config) *PromptKit {
 	if interval == 0 {
 		interval = 30 * time.Second
 	}
-	return &PromptKit{
+	return &Composr{
 		apiKey:       cfg.APIKey,
 		baseURL:      cfg.BaseURL,
 		environment:  cfg.Environment,
@@ -52,7 +52,7 @@ func New(cfg Config) *PromptKit {
 }
 
 // Initialize fetches the config from the server and starts background sync.
-func (pk *PromptKit) Initialize() error {
+func (pk *Composr) Initialize() error {
 	if err := pk.fetchConfig(); err != nil {
 		return err
 	}
@@ -60,7 +60,7 @@ func (pk *PromptKit) Initialize() error {
 	return nil
 }
 
-func (pk *PromptKit) fetchConfig() error {
+func (pk *Composr) fetchConfig() error {
 	url := fmt.Sprintf("%s/api/sdk/config/%s", pk.baseURL, pk.environment)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -75,7 +75,7 @@ func (pk *PromptKit) fetchConfig() error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("promptkit: config fetch failed (%d)", resp.StatusCode)
+		return fmt.Errorf("composr: config fetch failed (%d)", resp.StatusCode)
 	}
 
 	var config SDKConfig
@@ -89,7 +89,7 @@ func (pk *PromptKit) fetchConfig() error {
 	return nil
 }
 
-func (pk *PromptKit) syncLoop() {
+func (pk *Composr) syncLoop() {
 	ticker := time.NewTicker(pk.syncInterval)
 	defer ticker.Stop()
 	for {
@@ -104,7 +104,7 @@ func (pk *PromptKit) syncLoop() {
 
 // Compose assembles a prompt locally from cached config. If the client has
 // not been initialized yet, it will auto-initialize on the first call.
-func (pk *PromptKit) Compose(name string, ctx ComposeContext) (*ComposeResult, error) {
+func (pk *Composr) Compose(name string, ctx ComposeContext) (*ComposeResult, error) {
 	pk.mu.RLock()
 	config := pk.config
 	pk.mu.RUnlock()
@@ -121,8 +121,8 @@ func (pk *PromptKit) Compose(name string, ctx ComposeContext) (*ComposeResult, e
 	return compose(config, name, ctx)
 }
 
-// Track sends an LLM input/output pair to PromptKit for auto-scoring.
-func (pk *PromptKit) Track(assemblyID string, payload TrackPayload) error {
+// Track sends an LLM input/output pair to Composr for auto-scoring.
+func (pk *Composr) Track(assemblyID string, payload TrackPayload) error {
 	body := map[string]interface{}{
 		"assemblyId": assemblyID,
 		"input":      payload.Input,
@@ -138,8 +138,8 @@ func (pk *PromptKit) Track(assemblyID string, payload TrackPayload) error {
 	return pk.post("/api/sdk/track", body)
 }
 
-// Score sends manual metrics for an assembly to PromptKit.
-func (pk *PromptKit) Score(assemblyID string, metrics map[string]interface{}) error {
+// Score sends manual metrics for an assembly to Composr.
+func (pk *Composr) Score(assemblyID string, metrics map[string]interface{}) error {
 	return pk.post("/api/sdk/score", map[string]interface{}{
 		"assemblyId": assemblyID,
 		"metrics":    metrics,
@@ -148,11 +148,11 @@ func (pk *PromptKit) Score(assemblyID string, metrics map[string]interface{}) er
 
 // Close stops background config sync. Should be called when the client is
 // no longer needed.
-func (pk *PromptKit) Close() {
+func (pk *Composr) Close() {
 	close(pk.stopCh)
 }
 
-func (pk *PromptKit) post(path string, body interface{}) error {
+func (pk *Composr) post(path string, body interface{}) error {
 	data, err := json.Marshal(body)
 	if err != nil {
 		return err
@@ -172,7 +172,7 @@ func (pk *PromptKit) post(path string, body interface{}) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
-		return fmt.Errorf("promptkit: request failed (%d)", resp.StatusCode)
+		return fmt.Errorf("composr: request failed (%d)", resp.StatusCode)
 	}
 	return nil
 }

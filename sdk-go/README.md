@@ -16,17 +16,17 @@ package main
 import (
     "fmt"
     "log"
-    promptkit "github.com/composr/sdk-go"
+    composr "github.com/composr/sdk-go"
 )
 
 func main() {
-    pk := promptkit.New(promptkit.Config{
+    pk := composr.New(composr.Config{
         APIKey:      "pk_live_...",
         Environment: "prod",
     })
     defer pk.Close()
 
-    result, err := pk.Compose("builder", promptkit.ComposeContext{
+    result, err := pk.Compose("builder", composr.ComposeContext{
         "projectType": "ecommerce",
         "hasAuth":     true,
     })
@@ -38,7 +38,7 @@ func main() {
     fmt.Println(result.TokenCount) // token estimate
 
     // Track LLM output for scoring
-    pk.Track(result.ID, promptkit.TrackPayload{
+    pk.Track(result.ID, composr.TrackPayload{
         Input:     "user prompt here",
         Output:    "llm response here",
         Model:     "claude-sonnet-4.6",

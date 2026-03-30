@@ -1,6 +1,6 @@
-package promptkit
+package composr
 
-// Config holds initialization options for the PromptKit client.
+// Config holds initialization options for the Composr client.
 type Config struct {
 	APIKey         string
 	Environment    string // "dev", "staging", "prod" (default: "prod")

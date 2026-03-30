@@ -1,4 +1,4 @@
-package promptkit
+package composr
 
 // hashToBucket produces a deterministic bucket index from a seed string.
 // This mirrors the TypeScript implementation: Java-style hashCode modulo bucketCount.
