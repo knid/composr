@@ -1,6 +1,7 @@
 import type { SDKConfig, ComposeContext, ComposeResult } from "./types"
 import { selectVariant } from "./hash"
 import { evaluateExpression } from "./expression-parser"
+import { SDK_VERSION } from "./version"
 
 export function compose(
   config: SDKConfig,
@@ -27,7 +28,7 @@ export function compose(
       timestamp: new Date().toISOString(),
     },
     _env: { name: config.environment },
-    _sdk: { version: "0.1.0", language: "typescript" },
+    _sdk: { version: SDK_VERSION, language: "typescript" },
   }
   if (context._request) {
     fullContext._req = context._request

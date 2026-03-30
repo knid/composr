@@ -73,4 +73,9 @@ describe("SDK compose", () => {
   it("throws for unknown composition", () => {
     expect(() => compose(mockConfig, "nonexistent", {})).toThrow('Composition "nonexistent" not found')
   })
+
+  it("injects auto-captured metadata with correct SDK version", () => {
+    const result = compose(mockConfig, "builder", { projectType: "web", hasAuth: false })
+    expect(result.version).toBe("v3")
+  })
 })
