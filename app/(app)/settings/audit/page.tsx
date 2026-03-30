@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic"
 
 export default async function AuditLogPage() {
   const { orgId } = await auth()
-  if (!orgId) redirect("/sign-in")
+  if (!orgId) redirect("/")
 
   const logs = await db
     .select()

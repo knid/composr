@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic"
 
 export default async function ExperimentsPage() {
   const { orgId } = await auth()
-  if (!orgId) redirect("/sign-in")
+  if (!orgId) redirect("/")
 
   // Fetch scores that have a variantId (experiment scores only)
   const experimentScores = await db

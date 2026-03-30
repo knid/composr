@@ -1,8 +1,8 @@
 import { db } from "@/lib/db"
 import { blocks, compositions } from "@/lib/schema"
 import { auth } from "@clerk/nextjs/server"
+import { OrganizationSwitcher } from "@clerk/nextjs"
 import { eq } from "drizzle-orm"
-import { redirect } from "next/navigation"
 import { StatCard } from "@/components/dashboard/stat-card"
 import Link from "next/link"
 import { GitBranch } from "lucide-react"
@@ -12,7 +12,16 @@ export const dynamic = "force-dynamic"
 
 export default async function DashboardPage() {
   const { orgId } = await auth()
-  if (!orgId) redirect("/sign-in")
+
+  if (!orgId) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
+        <h1 className="text-lg font-semibold">Create or select an organization</h1>
+        <p className="text-sm text-muted-foreground">Composr uses organizations to scope your data.</p>
+        <OrganizationSwitcher afterSelectOrganizationUrl="/" afterCreateOrganizationUrl="/" />
+      </div>
+    )
+  }
 
   const teamBlocks = await db.select().from(blocks).where(eq(blocks.teamId, orgId))
   const teamComps = await db.select().from(compositions).where(eq(compositions.teamId, orgId))

@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic"
 
 export default async function CompositionsPage() {
   const { orgId } = await auth()
-  if (!orgId) redirect("/sign-in")
+  if (!orgId) redirect("/")
 
   const comps = await db
     .select()

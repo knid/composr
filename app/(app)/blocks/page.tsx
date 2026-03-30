@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic"
 
 export default async function BlocksPage() {
   const { orgId } = await auth()
-  if (!orgId) redirect("/sign-in")
+  if (!orgId) redirect("/")
 
   const teamBlocks = await db
     .select()

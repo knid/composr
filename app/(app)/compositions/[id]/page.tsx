@@ -13,7 +13,7 @@ export default async function CompositionEditorPage({
   params: Promise<{ id: string }>
 }) {
   const { orgId } = await auth()
-  if (!orgId) redirect("/sign-in")
+  if (!orgId) redirect("/")
   const { id } = await params
 
   const [comp] = await db
