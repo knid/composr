@@ -13,6 +13,7 @@ import { OutputNode } from "./nodes/output-node"
 import { BlockNode } from "./nodes/block-node"
 import { IfBooleanNode } from "./nodes/if-boolean-node"
 import { IfSwitchNode } from "./nodes/if-switch-node"
+import { IfPercentageNode } from "./nodes/if-percentage-node"
 import { MergeNode } from "./nodes/merge-node"
 
 const nodeTypes = {
@@ -21,6 +22,7 @@ const nodeTypes = {
   block: BlockNode,
   ifBoolean: IfBooleanNode,
   ifSwitch: IfSwitchNode,
+  ifPercentage: IfPercentageNode,
   merge: MergeNode,
 }
 

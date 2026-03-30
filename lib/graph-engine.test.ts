@@ -131,6 +131,43 @@ describe("assembleGraph", () => {
     expect(result.blocks).toEqual([])
   })
 
+  it("percentage node routes same user to same variant deterministically", () => {
+    const percentageGraph = {
+      nodes: [
+        { id: "start", type: "start", data: {} },
+        {
+          id: "if-pct",
+          type: "ifPercentage",
+          data: { variants: [{ name: "control", weight: 70 }, { name: "treatment", weight: 30 }] },
+        },
+        { id: "n-control", type: "block", data: { blockId: "b-role" } },
+        { id: "n-treatment", type: "block", data: { blockId: "b-auth" } },
+        { id: "output", type: "output", data: {} },
+      ],
+      edges: [
+        { id: "e1", source: "start", target: "if-pct" },
+        { id: "e2", source: "if-pct", target: "n-control", sourceHandle: "control" },
+        { id: "e3", source: "if-pct", target: "n-treatment", sourceHandle: "treatment" },
+        { id: "e4", source: "n-control", target: "output" },
+        { id: "e5", source: "n-treatment", target: "output" },
+      ],
+    }
+
+    const userId = "user-deterministic-42"
+    const context = { _req: { userId } }
+
+    // Run multiple times — same user must always get the same variant
+    const firstResult = assembleGraph(percentageGraph.nodes, percentageGraph.edges, blocks, context)
+    for (let i = 0; i < 10; i++) {
+      const result = assembleGraph(percentageGraph.nodes, percentageGraph.edges, blocks, context)
+      expect(result.blocks).toEqual(firstResult.blocks)
+    }
+
+    // Exactly one variant should be selected (not both)
+    expect(firstResult.blocks).toHaveLength(1)
+    expect(["role", "auth-rules"]).toContain(firstResult.blocks[0])
+  })
+
   it("supports nested context paths", () => {
     const nodes = [
       { id: "start", type: "start", data: {} },

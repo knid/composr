@@ -1,3 +1,5 @@
+import { selectVariant } from "./hash"
+
 interface GraphNode {
   id: string
   type: string
@@ -83,6 +85,23 @@ export function assembleGraph(
         )
         for (const edge of matchingEdges) {
           walk(edge.target)
+        }
+        return
+      }
+
+      case "ifPercentage": {
+        const variants = (node.data.variants as Array<{ name: string; weight: number }>) ?? []
+        const seed = context._req?.userId ?? context._req?.sessionId ?? String(Date.now())
+        const weights = variants.map(v => v.weight)
+        const selectedIndex = selectVariant(seed, weights)
+        const selectedVariant = variants[selectedIndex]
+        if (selectedVariant) {
+          const matchingEdges = (edgesBySource.get(node.id) ?? []).filter(
+            (e) => e.sourceHandle === selectedVariant.name
+          )
+          for (const edge of matchingEdges) {
+            walk(edge.target)
+          }
         }
         return
       }

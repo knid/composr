@@ -1,4 +1,5 @@
 import type { SDKConfig, ComposeContext, ComposeResult } from "./types"
+import { selectVariant } from "./hash"
 
 export function compose(
   config: SDKConfig,
@@ -65,6 +66,18 @@ export function compose(
       const match = cases.includes(value) ? value : cases[cases.length - 1]
       for (const e of (edgesBySource.get(node.id) ?? []).filter((e: any) => e.sourceHandle === match)) {
         walk(e.target)
+      }
+      return
+    } else if (node.type === "ifPercentage") {
+      const variants = (node.data.variants as Array<{ name: string; weight: number }>) ?? []
+      const seed = fullContext._req?.userId ?? fullContext._req?.sessionId ?? String(Date.now())
+      const weights = variants.map((v: { name: string; weight: number }) => v.weight)
+      const selectedIndex = selectVariant(seed, weights)
+      const selectedVariant = variants[selectedIndex]
+      if (selectedVariant) {
+        for (const e of (edgesBySource.get(node.id) ?? []).filter((e: any) => e.sourceHandle === selectedVariant.name)) {
+          walk(e.target)
+        }
       }
       return
     }
