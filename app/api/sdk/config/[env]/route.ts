@@ -3,6 +3,7 @@ import { blocks, compositions, deployments, apiKeys } from "@/lib/schema"
 import { eq, desc } from "drizzle-orm"
 import { NextResponse } from "next/server"
 import crypto from "crypto"
+import { checkRateLimit } from "@/lib/rate-limit"
 
 async function authenticateSDK(req: Request) {
   const authHeader = req.headers.get("authorization")
@@ -25,6 +26,21 @@ export async function GET(
 ) {
   const apiKey = await authenticateSDK(req)
   if (!apiKey) return NextResponse.json({ error: "Invalid API key" }, { status: 401 })
+
+  const rateLimit = checkRateLimit(`sdk:${apiKey.id}`, 100, 60_000)
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Rate limit exceeded" },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Remaining": String(rateLimit.remaining),
+          "X-RateLimit-Reset": String(Math.ceil(rateLimit.resetAt / 1000)),
+          "Retry-After": String(Math.ceil((rateLimit.resetAt - Date.now()) / 1000)),
+        },
+      }
+    )
+  }
 
   const { env } = await params
   const teamId = apiKey.teamId
