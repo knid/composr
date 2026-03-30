@@ -1,5 +1,5 @@
 import { db } from "@/lib/db"
-import { blocks, compositions, deployments, apiKeys } from "@/lib/schema"
+import { blocks, compositions, deployments } from "@/lib/schema"
 import { eq, desc } from "drizzle-orm"
 import { NextResponse } from "next/server"
 import { checkRateLimit } from "@/lib/rate-limit"
