@@ -23,10 +23,10 @@ export default async function UsagePage() {
     .orderBy(desc(usageRecords.date))
 
   // Aggregate by date
-  const byDate = new Map<string, { config: number; track: number; score: number }>()
+  const byDate = new Map<string, { config: number; track: number; score: number; compose: number }>()
   for (const r of records) {
-    const existing = byDate.get(r.date) ?? { config: 0, track: 0, score: 0 }
-    const endpoint = r.endpoint as "config" | "track" | "score"
+    const existing = byDate.get(r.date) ?? { config: 0, track: 0, score: 0, compose: 0 }
+    const endpoint = r.endpoint as "config" | "track" | "score" | "compose"
     existing[endpoint] = (existing[endpoint] ?? 0) + r.count
     byDate.set(r.date, existing)
   }
@@ -35,6 +35,7 @@ export default async function UsagePage() {
   const totalConfig = records.filter((r) => r.endpoint === "config").reduce((s, r) => s + r.count, 0)
   const totalTrack = records.filter((r) => r.endpoint === "track").reduce((s, r) => s + r.count, 0)
   const totalScore = records.filter((r) => r.endpoint === "score").reduce((s, r) => s + r.count, 0)
+  const totalCompose = records.filter((r) => r.endpoint === "compose").reduce((s, r) => s + r.count, 0)
 
   return (
     <div>
@@ -50,7 +51,7 @@ export default async function UsagePage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="grid grid-cols-4 gap-3 mb-6">
             <div className="rounded-xl border border-border bg-card p-3">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Config calls</div>
               <div className="mt-1 text-2xl font-semibold tracking-tight">{totalConfig.toLocaleString()}</div>
@@ -66,6 +67,11 @@ export default async function UsagePage() {
               <div className="mt-1 text-2xl font-semibold tracking-tight">{totalScore.toLocaleString()}</div>
               <div className="mt-0.5 text-[10px] text-muted-foreground">last 30 days</div>
             </div>
+            <div className="rounded-xl border border-border bg-card p-3">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Compose calls</div>
+              <div className="mt-1 text-2xl font-semibold tracking-tight">{totalCompose.toLocaleString()}</div>
+              <div className="mt-0.5 text-[10px] text-muted-foreground">last 30 days</div>
+            </div>
           </div>
 
           <div className="rounded-xl border border-border overflow-hidden">
@@ -76,6 +82,7 @@ export default async function UsagePage() {
                   <th className="px-3 py-2 text-right font-medium text-muted-foreground">Config</th>
                   <th className="px-3 py-2 text-right font-medium text-muted-foreground">Track</th>
                   <th className="px-3 py-2 text-right font-medium text-muted-foreground">Score</th>
+                  <th className="px-3 py-2 text-right font-medium text-muted-foreground">Compose</th>
                   <th className="px-3 py-2 text-right font-medium text-muted-foreground">Total</th>
                 </tr>
               </thead>
@@ -86,8 +93,9 @@ export default async function UsagePage() {
                     <td className="px-3 py-2 text-right tabular-nums">{counts.config || "—"}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{counts.track || "—"}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{counts.score || "—"}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{counts.compose || "—"}</td>
                     <td className="px-3 py-2 text-right tabular-nums font-medium">
-                      {counts.config + counts.track + counts.score}
+                      {counts.config + counts.track + counts.score + counts.compose}
                     </td>
                   </tr>
                 ))}
