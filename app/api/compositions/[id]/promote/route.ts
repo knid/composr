@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm"
 import { NextResponse } from "next/server"
 import { logAudit } from "@/lib/audit"
 import { configEvents } from "@/lib/config-events"
+import { invalidateTeam } from "@/lib/config-cache"
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { orgId, userId } = await auth()
@@ -37,6 +38,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   await logAudit({ teamId: orgId, userId, action: "deployment.promoted", resourceType: "deployment", resourceId: deployment.id, metadata: { environment, version: composition.version } })
 
+  invalidateTeam(orgId)
   configEvents.notify(orgId)
 
   return NextResponse.json(deployment, { status: 201 })

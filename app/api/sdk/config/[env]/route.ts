@@ -5,6 +5,7 @@ import { NextResponse } from "next/server"
 import crypto from "crypto"
 import { checkRateLimit } from "@/lib/rate-limit"
 import { trackUsage } from "@/lib/usage"
+import { getCached, setCached } from "@/lib/config-cache"
 
 async function authenticateSDK(req: Request) {
   const authHeader = req.headers.get("authorization")
@@ -48,6 +49,12 @@ export async function GET(
   const { env } = await params
   const teamId = apiKey.teamId
 
+  const cacheKey = `config:${teamId}:${env}`
+  const cached = getCached(cacheKey)
+  if (cached) {
+    return NextResponse.json(cached)
+  }
+
   // Get all blocks for this team
   const teamBlocks = await db
     .select()
@@ -87,10 +94,7 @@ export async function GET(
     contextSchema: c.contextSchema,
   }))
 
-  return NextResponse.json({
-    version: Date.now().toString(),
-    environment: env,
-    blocks: blockLookup,
-    compositions: compositionConfigs,
-  })
+  const result = { version: Date.now().toString(), environment: env, blocks: blockLookup, compositions: compositionConfigs }
+  setCached(cacheKey, result, 10_000)
+  return NextResponse.json(result)
 }

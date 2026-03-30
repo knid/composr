@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm"
 import { NextResponse } from "next/server"
 import { logAudit } from "@/lib/audit"
 import { configEvents } from "@/lib/config-events"
+import { invalidateTeam } from "@/lib/config-cache"
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { orgId } = await auth()
@@ -64,6 +65,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   await logAudit({ teamId: orgId, userId, action: "composition.updated", resourceType: "composition", resourceId: id, metadata: { name: updated.name, version: updated.version } })
 
+  invalidateTeam(orgId)
   configEvents.notify(orgId)
 
   return NextResponse.json(updated)
@@ -80,6 +82,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
   await logAudit({ teamId: orgId, userId, action: "composition.deleted", resourceType: "composition", resourceId: id })
 
+  invalidateTeam(orgId)
   configEvents.notify(orgId)
 
   return NextResponse.json({ ok: true })

@@ -5,6 +5,7 @@ import { eq, desc } from "drizzle-orm"
 import { NextResponse } from "next/server"
 import { logAudit } from "@/lib/audit"
 import { configEvents } from "@/lib/config-events"
+import { invalidateTeam } from "@/lib/config-cache"
 
 export async function GET() {
   const { orgId } = await auth()
@@ -43,6 +44,7 @@ export async function POST(req: Request) {
 
   await logAudit({ teamId: orgId, userId, action: "block.created", resourceType: "block", resourceId: block.id, metadata: { name: block.name } })
 
+  invalidateTeam(orgId)
   configEvents.notify(orgId)
 
   return NextResponse.json(block, { status: 201 })
