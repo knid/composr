@@ -5,6 +5,7 @@ import { eq, isNotNull, and } from "drizzle-orm"
 import { redirect } from "next/navigation"
 import { Beaker } from "lucide-react"
 import { ExperimentCard } from "@/components/experiments/experiment-card"
+import { BarChartCard } from "@/components/charts/bar-chart-card"
 import { welchTTest, experimentStatus, mean } from "@/lib/statistics"
 export const dynamic = "force-dynamic"
 
@@ -116,6 +117,20 @@ export default async function ExperimentsPage() {
             <ExperimentCard key={exp.compositionId} {...exp} />
           ))}
         </div>
+        {experiments.length > 0 && (
+          <div className="mt-6">
+            <BarChartCard
+              title="Mean Score by Variant"
+              data={experiments.flatMap((exp) =>
+                exp.variants.map((v) => ({
+                  label: `${exp.compositionName.slice(0, 12)}:${v.name.slice(0, 10)}`,
+                  value: Math.round(v.meanScore),
+                }))
+              )}
+              color="#f59e0b"
+            />
+          </div>
+        )}
       )}
     </div>
   )
