@@ -3,7 +3,7 @@ import { compositions } from "@/lib/schema"
 import { auth } from "@clerk/nextjs/server"
 import { eq, and } from "drizzle-orm"
 import { redirect, notFound } from "next/navigation"
-import { FlowCanvas } from "@/components/editor/flow-canvas"
+import { CompositionEditor } from "@/components/compositions/composition-editor"
 
 export const dynamic = "force-dynamic"
 
@@ -26,21 +26,13 @@ export default async function CompositionEditorPage({
   const graph = comp.graph as { nodes: any[]; edges: any[] }
 
   return (
-    <div className="flex h-[calc(100dvh-48px)] flex-col -m-6">
-      <div className="flex items-center justify-between border-b border-border px-4 py-2">
-        <div className="flex items-center gap-3">
-          <h1 className="text-sm font-semibold">{comp.name}</h1>
-          <span className="rounded bg-success/10 px-2 py-0.5 font-mono text-[10px] text-success">
-            v{comp.version}
-          </span>
-        </div>
-      </div>
-      <div className="flex-1">
-        <FlowCanvas
-          initialNodes={graph.nodes}
-          initialEdges={graph.edges}
-        />
-      </div>
-    </div>
+    <CompositionEditor
+      id={comp.id}
+      name={comp.name}
+      version={comp.version}
+      initialNodes={graph.nodes}
+      initialEdges={graph.edges}
+      contextSchema={comp.contextSchema as { name: string; type: "string" | "boolean" | "enum"; values?: string[] }[]}
+    />
   )
 }
