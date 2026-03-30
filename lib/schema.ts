@@ -4,6 +4,7 @@ import {
   uuid,
   text,
   integer,
+  boolean,
   timestamp,
   jsonb,
 } from "drizzle-orm/pg-core"
@@ -116,4 +117,45 @@ export const assemblyLogs = pgTable("assembly_logs", {
   variantId: text("variant_id"),
   tokenCount: integer("token_count"),
   assembledAt: timestamp("assembled_at").notNull().defaultNow(),
+})
+
+// scores
+export const scores = pgTable("scores", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  teamId: uuid("team_id")
+    .notNull()
+    .references(() => teams.id),
+  assemblyId: text("assembly_id").notNull(),
+  compositionId: uuid("composition_id").notNull(),
+  compositionVersion: integer("composition_version").notNull(),
+  environment: environmentEnum("environment").notNull(),
+  variantId: text("variant_id"),
+  context: jsonb("context"),
+  input: text("input"),
+  output: text("output"),
+  model: text("model"),
+  latencyMs: integer("latency_ms"),
+  inputTokens: integer("input_tokens"),
+  outputTokens: integer("output_tokens"),
+  autoScores: jsonb("auto_scores").notNull().default({}),
+  manualScores: jsonb("manual_scores").notNull().default({}),
+  overallScore: integer("overall_score"),
+  evalStatus: text("eval_status").notNull().default("pending"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+})
+
+// eval_configs
+export const evalConfigs = pgTable("eval_configs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  compositionId: uuid("composition_id")
+    .notNull()
+    .references(() => compositions.id),
+  scorerName: text("scorer_name").notNull(),
+  enabled: boolean("enabled").notNull().default(true),
+  sampleRate: integer("sample_rate").notNull().default(20),
+  judgeModel: text("judge_model").notNull().default("anthropic/claude-sonnet-4.6"),
+  judgePrompt: text("judge_prompt"),
+  weight: integer("weight").notNull().default(1),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 })
