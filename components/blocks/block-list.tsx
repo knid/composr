@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { cn } from "@/lib/utils"
 import { Plus, Search, Trash2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -24,6 +25,7 @@ interface Block {
 export function BlockList({ initialBlocks }: { initialBlocks: Block[] }) {
   const [blocks, setBlocks] = useState(initialBlocks)
   const [search, setSearch] = useState("")
+  const [activeTags, setActiveTags] = useState<Set<string>>(new Set())
   const [newName, setNewName] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
 
@@ -35,9 +37,22 @@ export function BlockList({ initialBlocks }: { initialBlocks: Block[] }) {
   const [editTags, setEditTags] = useState("")
   const [saving, setSaving] = useState(false)
 
-  const filtered = blocks.filter((b) =>
-    b.name.toLowerCase().includes(search.toLowerCase())
-  )
+  const allTags = Array.from(new Set(blocks.flatMap((b) => b.tags ?? [])))
+
+  const filtered = blocks.filter((b) => {
+    const matchesSearch = b.name.toLowerCase().includes(search.toLowerCase())
+    const matchesTags = activeTags.size === 0 || (b.tags ?? []).some((t) => activeTags.has(t))
+    return matchesSearch && matchesTags
+  })
+
+  function toggleTag(tag: string) {
+    setActiveTags((prev) => {
+      const next = new Set(prev)
+      if (next.has(tag)) next.delete(tag)
+      else next.add(tag)
+      return next
+    })
+  }
 
   async function createBlock() {
     const res = await fetch("/api/blocks", {
@@ -115,6 +130,24 @@ export function BlockList({ initialBlocks }: { initialBlocks: Block[] }) {
           </DialogContent>
         </Dialog>
       </div>
+      {allTags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {allTags.map((tag) => (
+            <button
+              key={tag}
+              onClick={() => toggleTag(tag)}
+              className={cn(
+                "rounded-full px-2.5 py-0.5 text-[10px] font-medium transition-colors",
+                activeTags.has(tag)
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.map((block) => (
           <BlockCard key={block.id} block={block} onClick={() => openEdit(block)} />
