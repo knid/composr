@@ -2,16 +2,18 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, GitBranch, Boxes, Settings, Beaker, Target, BarChart3 } from "lucide-react"
+import { LayoutDashboard, GitBranch, Boxes, Settings, Beaker, Target, BarChart3, ScrollText, Workflow } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/compositions", label: "Compositions", icon: GitBranch },
+  { href: "/pipelines", label: "Pipelines", icon: Workflow },
   { href: "/blocks", label: "Blocks", icon: Boxes },
   { href: "/experiments", label: "Experiments", icon: Beaker },
   { href: "/scoring", label: "Scoring", icon: Target },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/logs", label: "Logs", icon: ScrollText },
 ]
 
 const bottomItems = [
