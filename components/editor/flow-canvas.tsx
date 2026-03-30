@@ -11,11 +11,17 @@ import "@xyflow/react/dist/style.css"
 import { StartNode } from "./nodes/start-node"
 import { OutputNode } from "./nodes/output-node"
 import { BlockNode } from "./nodes/block-node"
+import { IfBooleanNode } from "./nodes/if-boolean-node"
+import { IfSwitchNode } from "./nodes/if-switch-node"
+import { MergeNode } from "./nodes/merge-node"
 
 const nodeTypes = {
   start: StartNode,
   output: OutputNode,
   block: BlockNode,
+  ifBoolean: IfBooleanNode,
+  ifSwitch: IfSwitchNode,
+  merge: MergeNode,
 }
 
 interface FlowCanvasProps {
