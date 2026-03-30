@@ -117,7 +117,10 @@ export function PreviewPanel({ nodes, edges, blocks, contextSchema }: PreviewPan
                 <pre className="whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-muted-foreground">
                   {result.text || (
                     <span className="text-muted-foreground/50 italic">
-                      Empty output. Connect blocks from Start to Output to see the assembled prompt.
+                      Empty output. Make sure you have a connected path:
+                      {"\n\n"}Start → Block(s) → Output
+                      {"\n\n"}Drag a Block from the left palette, connect Start&apos;s green handle to the Block, then connect the Block to Output. The assembled prompt will appear here in real time.
+                      {"\n\n"}If using IF nodes: Start → IF → Block (on true/false branch) → Merge → Output
                     </span>
                   )}
                 </pre>

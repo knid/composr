@@ -73,11 +73,12 @@ export function CompositionEditor({
       })
   }, [])
 
-  /* Graph change callback */
+  /* Graph change callback — updates both the ref (for save) and live state (for preview) */
   const onGraphChange = useCallback((nodes: Node[], edges: Edge[]) => {
     graphRef.current = { nodes, edges }
-    setLiveNodes(nodes)
-    setLiveEdges(edges)
+    // Use functional updates to avoid stale closures
+    setLiveNodes([...nodes])
+    setLiveEdges([...edges])
     if (initialRef.current) {
       initialRef.current = false
       return
