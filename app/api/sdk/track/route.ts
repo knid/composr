@@ -1,5 +1,5 @@
 import { db } from "@/lib/db"
-import { scores } from "@/lib/schema"
+import { scores, assemblyLogs } from "@/lib/schema"
 import { eq } from "drizzle-orm"
 import { NextResponse } from "next/server"
 import { checkRateLimit } from "@/lib/rate-limit"
@@ -65,6 +65,20 @@ export async function POST(req: Request) {
       evalStatus: "pending",
     })
     .returning({ id: scores.id, evalStatus: scores.evalStatus })
+
+  // Write assembly log if we have the data
+  if (body.resolvedBlocks) {
+    await db.insert(assemblyLogs).values({
+      teamId: apiKey.teamId,
+      compositionId,
+      compositionVersion,
+      environment,
+      context: context ?? {},
+      resolvedBlocks: body.resolvedBlocks ?? [],
+      variantId: variantId ?? null,
+      tokenCount: body.tokenCount ?? null,
+    })
+  }
 
   return NextResponse.json({ id: score.id, evalStatus: score.evalStatus })
 }
