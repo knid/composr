@@ -3,6 +3,7 @@ import { blocks, compositions } from "@/lib/schema"
 import { auth } from "@clerk/nextjs/server"
 import { OrganizationSwitcher } from "@clerk/nextjs"
 import { eq } from "drizzle-orm"
+import { ensureTeam } from "@/lib/ensure-team"
 import { StatCard } from "@/components/dashboard/stat-card"
 import Link from "next/link"
 import { GitBranch } from "lucide-react"
@@ -22,6 +23,8 @@ export default async function DashboardPage() {
       </div>
     )
   }
+
+  await ensureTeam(orgId)
 
   const teamBlocks = await db.select().from(blocks).where(eq(blocks.teamId, orgId))
   const teamComps = await db.select().from(compositions).where(eq(compositions.teamId, orgId))

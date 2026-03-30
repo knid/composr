@@ -12,10 +12,9 @@ import {
 // Shared enum for environment
 export const environmentEnum = pgEnum("environment", ["dev", "staging", "prod"])
 
-// teams
+// teams — id IS the Clerk orgId (text, not uuid)
 export const teams = pgTable("teams", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  clerkOrgId: text("clerk_org_id").unique().notNull(),
+  id: text("id").primaryKey(),
   name: text("name").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 })
@@ -23,7 +22,7 @@ export const teams = pgTable("teams", {
 // api_keys
 export const apiKeys = pgTable("api_keys", {
   id: uuid("id").primaryKey().defaultRandom(),
-  teamId: uuid("team_id")
+  teamId: text("team_id")
     .notNull()
     .references(() => teams.id),
   name: text("name").notNull(),
@@ -37,7 +36,7 @@ export const apiKeys = pgTable("api_keys", {
 // blocks
 export const blocks = pgTable("blocks", {
   id: uuid("id").primaryKey().defaultRandom(),
-  teamId: uuid("team_id")
+  teamId: text("team_id")
     .notNull()
     .references(() => teams.id),
   name: text("name").notNull(),
@@ -64,7 +63,7 @@ export const blockVersions = pgTable("block_versions", {
 // compositions
 export const compositions = pgTable("compositions", {
   id: uuid("id").primaryKey().defaultRandom(),
-  teamId: uuid("team_id")
+  teamId: text("team_id")
     .notNull()
     .references(() => teams.id),
   name: text("name").notNull(),
@@ -106,7 +105,7 @@ export const deployments = pgTable("deployments", {
 // assembly_logs
 export const assemblyLogs = pgTable("assembly_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
-  teamId: uuid("team_id")
+  teamId: text("team_id")
     .notNull()
     .references(() => teams.id),
   compositionId: uuid("composition_id").notNull(),
@@ -122,7 +121,7 @@ export const assemblyLogs = pgTable("assembly_logs", {
 // scores
 export const scores = pgTable("scores", {
   id: uuid("id").primaryKey().defaultRandom(),
-  teamId: uuid("team_id")
+  teamId: text("team_id")
     .notNull()
     .references(() => teams.id),
   assemblyId: text("assembly_id").notNull(),
@@ -147,7 +146,7 @@ export const scores = pgTable("scores", {
 // audit_logs
 export const auditLogs = pgTable("audit_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
-  teamId: uuid("team_id").notNull().references(() => teams.id),
+  teamId: text("team_id").notNull().references(() => teams.id),
   userId: text("user_id"), // Clerk userId
   action: text("action").notNull(), // "block.created", "composition.updated", "deployment.promoted", etc.
   resourceType: text("resource_type").notNull(), // "block", "composition", "deployment", "api_key"
@@ -175,7 +174,7 @@ export const evalConfigs = pgTable("eval_configs", {
 // usage_records
 export const usageRecords = pgTable("usage_records", {
   id: uuid("id").primaryKey().defaultRandom(),
-  teamId: uuid("team_id").notNull().references(() => teams.id),
+  teamId: text("team_id").notNull().references(() => teams.id),
   endpoint: text("endpoint").notNull(), // "config", "track", "score"
   count: integer("count").notNull().default(0),
   date: text("date").notNull(), // "2026-03-30" — daily bucket
