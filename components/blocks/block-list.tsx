@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Plus, Search, Trash2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
+import { MonacoBlockEditor } from "@/components/editor/monaco-block-editor"
 import { BlockCard } from "./block-card"
 import { toast } from "sonner"
 import {
@@ -144,11 +144,10 @@ export function BlockList({ initialBlocks }: { initialBlocks: Block[] }) {
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground">Content</label>
-              <Textarea
+              <MonacoBlockEditor
                 value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                className="min-h-[200px] font-mono text-xs"
-                placeholder="Block content (prompt text)..."
+                onChange={(val) => setEditContent(val)}
+                height="250px"
               />
             </div>
             <div>
