@@ -3,6 +3,7 @@ import { compositions, compositionVersions } from "@/lib/schema"
 import { auth } from "@clerk/nextjs/server"
 import { eq, desc } from "drizzle-orm"
 import { NextResponse } from "next/server"
+import { logAudit } from "@/lib/audit"
 
 const DEFAULT_GRAPH = {
   nodes: [
@@ -50,6 +51,8 @@ export async function POST(req: Request) {
     contextSchema: composition.contextSchema,
     createdBy: userId,
   })
+
+  await logAudit({ teamId: orgId, userId, action: "composition.created", resourceType: "composition", resourceId: composition.id, metadata: { name: composition.name } })
 
   return NextResponse.json(composition, { status: 201 })
 }

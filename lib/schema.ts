@@ -144,6 +144,18 @@ export const scores = pgTable("scores", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 })
 
+// audit_logs
+export const auditLogs = pgTable("audit_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  teamId: uuid("team_id").notNull().references(() => teams.id),
+  userId: text("user_id"), // Clerk userId
+  action: text("action").notNull(), // "block.created", "composition.updated", "deployment.promoted", etc.
+  resourceType: text("resource_type").notNull(), // "block", "composition", "deployment", "api_key"
+  resourceId: text("resource_id"), // ID of the affected resource
+  metadata: jsonb("metadata").notNull().default({}), // additional context (old/new values, etc.)
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+})
+
 // eval_configs
 export const evalConfigs = pgTable("eval_configs", {
   id: uuid("id").primaryKey().defaultRandom(),

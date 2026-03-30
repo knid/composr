@@ -3,6 +3,7 @@ import { blocks, blockVersions } from "@/lib/schema"
 import { auth } from "@clerk/nextjs/server"
 import { eq, and } from "drizzle-orm"
 import { NextResponse } from "next/server"
+import { logAudit } from "@/lib/audit"
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { orgId } = await auth()
@@ -57,14 +58,19 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     })
   }
 
+  await logAudit({ teamId: orgId, userId, action: "block.updated", resourceType: "block", resourceId: id, metadata: { name: updated.name, version: updated.version } })
+
   return NextResponse.json(updated)
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { orgId } = await auth()
+  const { orgId, userId } = await auth()
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const { id } = await params
 
   await db.delete(blocks).where(and(eq(blocks.id, id), eq(blocks.teamId, orgId)))
+
+  await logAudit({ teamId: orgId, userId, action: "block.deleted", resourceType: "block", resourceId: id })
+
   return NextResponse.json({ ok: true })
 }

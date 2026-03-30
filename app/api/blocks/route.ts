@@ -3,6 +3,7 @@ import { blocks, blockVersions } from "@/lib/schema"
 import { auth } from "@clerk/nextjs/server"
 import { eq, desc } from "drizzle-orm"
 import { NextResponse } from "next/server"
+import { logAudit } from "@/lib/audit"
 
 export async function GET() {
   const { orgId } = await auth()
@@ -38,6 +39,8 @@ export async function POST(req: Request) {
     content: block.content,
     createdBy: userId,
   })
+
+  await logAudit({ teamId: orgId, userId, action: "block.created", resourceType: "block", resourceId: block.id, metadata: { name: block.name } })
 
   return NextResponse.json(block, { status: 201 })
 }
