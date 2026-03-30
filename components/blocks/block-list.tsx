@@ -37,6 +37,10 @@ export function BlockList({ initialBlocks }: { initialBlocks: Block[] }) {
   const [editTags, setEditTags] = useState("")
   const [saving, setSaving] = useState(false)
 
+  const [versions, setVersions] = useState<Array<{ version: number; content: string; createdAt: string }>>([])
+  const [selectedVersion, setSelectedVersion] = useState<number | null>(null)
+  const [loadingVersions, setLoadingVersions] = useState(false)
+
   const allTags = Array.from(new Set(blocks.flatMap((b) => b.tags ?? [])))
 
   const filtered = blocks.filter((b) => {
@@ -72,6 +76,14 @@ export function BlockList({ initialBlocks }: { initialBlocks: Block[] }) {
     setEditDescription(block.description ?? "")
     setEditContent(block.content)
     setEditTags((block.tags ?? []).join(", "))
+    setVersions([])
+    setSelectedVersion(null)
+    setLoadingVersions(true)
+    fetch(`/api/blocks/${block.id}/versions`)
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setVersions(data) })
+      .catch(() => {})
+      .finally(() => setLoadingVersions(false))
   }
 
   async function saveBlock() {
@@ -188,6 +200,52 @@ export function BlockList({ initialBlocks }: { initialBlocks: Block[] }) {
               <Input value={editTags} onChange={(e) => setEditTags(e.target.value)}
                 placeholder="e.g. system, persona, guardrail" />
             </div>
+            {versions.length > 0 && (
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">
+                  Version History
+                </label>
+                <div className="flex items-center gap-2 mt-1">
+                  <select
+                    value={selectedVersion ?? ""}
+                    onChange={(e) => setSelectedVersion(e.target.value ? Number(e.target.value) : null)}
+                    className="rounded border border-border bg-background px-2 py-1.5 text-xs flex-1"
+                  >
+                    <option value="">Current (v{editBlock?.version})</option>
+                    {versions.map((v) => (
+                      <option key={v.version} value={v.version}>
+                        v{v.version} — {new Date(v.createdAt).toLocaleDateString()}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedVersion !== null && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const v = versions.find((ver) => ver.version === selectedVersion)
+                        if (v) {
+                          setEditContent(v.content)
+                          setSelectedVersion(null)
+                          toast.success(`Restored content from v${v.version}`)
+                        }
+                      }}
+                    >
+                      Restore
+                    </Button>
+                  )}
+                </div>
+                {selectedVersion !== null && (
+                  <div className="mt-2">
+                    <MonacoBlockEditor
+                      value={versions.find((v) => v.version === selectedVersion)?.content ?? ""}
+                      readOnly
+                      height="150px"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
             <div className="flex items-center justify-between pt-2">
               <Button variant="destructive" size="sm" className="gap-1.5" onClick={deleteBlock}>
                 <Trash2 className="h-3.5 w-3.5" /> Delete
