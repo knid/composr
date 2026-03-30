@@ -226,7 +226,7 @@ export function CompositionEditor({
             size="sm"
             className="gap-1.5"
             onClick={save}
-            disabled={!dirty || saving}
+            disabled={!dirty || saving || undefined}
           >
             <Save className="h-3.5 w-3.5" /> {saving ? "Saving..." : "Save"}
           </Button>
