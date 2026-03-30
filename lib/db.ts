@@ -13,3 +13,10 @@ export function getDb() {
   if (!_db) _db = createDb()
   return _db
 }
+
+// Convenience alias used throughout the app
+export const db = new Proxy({} as ReturnType<typeof createDb>, {
+  get(_, prop) {
+    return (getDb() as any)[prop]
+  },
+})
