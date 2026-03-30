@@ -9,7 +9,7 @@ import { PreviewPanel } from "@/components/editor/preview-panel"
 import { ContextSchemaEditor, type ContextField } from "@/components/editor/context-schema-editor"
 import { EvalConfigPanel } from "./eval-config-panel"
 import { Button } from "@/components/ui/button"
-import { Save, Trash2, Rocket, FlaskConical, Braces, Eye } from "lucide-react"
+import { Save, Trash2, Rocket, FlaskConical, Braces, Eye, History } from "lucide-react"
 import { toast } from "sonner"
 import type { Node, Edge } from "@xyflow/react"
 import {
@@ -53,6 +53,9 @@ export function CompositionEditor({
   const [previewOpen, setPreviewOpen] = useState(true)
   const [liveNodes, setLiveNodes] = useState<Node[]>(initialNodes)
   const [liveEdges, setLiveEdges] = useState<Edge[]>(initialEdges)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [compVersions, setCompVersions] = useState<Array<{ version: number; graph: any; contextSchema: any; createdAt: string }>>([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
 
   const graphRef = useRef<{ nodes: Node[]; edges: Edge[] }>({
     nodes: initialNodes,
@@ -142,6 +145,33 @@ export function CompositionEditor({
     }
   }
 
+  async function fetchHistory() {
+    setLoadingHistory(true)
+    try {
+      const res = await fetch(`/api/compositions/${id}/versions`)
+      const data = await res.json()
+      if (Array.isArray(data)) setCompVersions(data)
+    } catch {}
+    setLoadingHistory(false)
+    setHistoryOpen(true)
+  }
+
+  async function rollbackTo(targetVersion: number) {
+    const res = await fetch(`/api/compositions/${id}/rollback`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ version: targetVersion }),
+    })
+    if (res.ok) {
+      toast.success(`Rolled back to v${targetVersion}`)
+      setHistoryOpen(false)
+      router.refresh()
+    } else {
+      const data = await res.json()
+      toast.error(data.error ?? "Rollback failed")
+    }
+  }
+
   /* Deploy */
   async function deploy(environment: string) {
     setDeploying(true)
@@ -218,6 +248,14 @@ export function CompositionEditor({
             size="sm"
             variant="outline"
             className="gap-1.5"
+            onClick={fetchHistory}
+          >
+            <History className="h-3.5 w-3.5" /> History
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
             onClick={() => setDeployOpen(true)}
           >
             <Rocket className="h-3.5 w-3.5" /> Deploy
@@ -283,6 +321,55 @@ export function CompositionEditor({
         open={evalOpen}
         onOpenChange={setEvalOpen}
       />
+
+      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Version History</DialogTitle>
+          </DialogHeader>
+          {loadingHistory ? (
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          ) : compVersions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No version history available.</p>
+          ) : (
+            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+              {compVersions.map((v) => {
+                const nodeCount = v.graph?.nodes?.length ?? 0
+                const blockCount = v.graph?.nodes?.filter((n: any) => n.type === "block").length ?? 0
+                return (
+                  <div
+                    key={v.version}
+                    className="flex items-center justify-between rounded-lg border border-border bg-card p-3"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">v{v.version}</span>
+                        {v.version === version && (
+                          <span className="rounded bg-success/10 px-1.5 py-0.5 text-[10px] text-success font-medium">
+                            current
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">
+                        {new Date(v.createdAt).toLocaleString()} · {blockCount} blocks · {nodeCount} nodes
+                      </div>
+                    </div>
+                    {v.version !== version && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => rollbackTo(v.version)}
+                      >
+                        Restore
+                      </Button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={deployOpen} onOpenChange={setDeployOpen}>
         <DialogContent>
