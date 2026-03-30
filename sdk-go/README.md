@@ -1,0 +1,87 @@
+# PromptKit Go SDK
+
+The official Go SDK for [PromptKit](https://promptkit.dev) -- the prompt compiler for AI-first teams.
+
+## Install
+
+```bash
+go get github.com/promptkit/sdk-go
+```
+
+## Usage
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+    promptkit "github.com/promptkit/sdk-go"
+)
+
+func main() {
+    pk := promptkit.New(promptkit.Config{
+        APIKey:      "pk_live_...",
+        Environment: "prod",
+    })
+    defer pk.Close()
+
+    result, err := pk.Compose("builder", promptkit.ComposeContext{
+        "projectType": "ecommerce",
+        "hasAuth":     true,
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    fmt.Println(result.Text)       // assembled prompt
+    fmt.Println(result.TokenCount) // token estimate
+
+    // Track LLM output for scoring
+    pk.Track(result.ID, promptkit.TrackPayload{
+        Input:     "user prompt here",
+        Output:    "llm response here",
+        Model:     "claude-sonnet-4.6",
+        LatencyMs: 3200,
+    })
+
+    // Send manual metrics
+    pk.Score(result.ID, map[string]interface{}{
+        "accuracy":  0.95,
+        "relevance": 0.88,
+    })
+}
+```
+
+## API
+
+### `New(cfg Config) *PromptKit`
+
+Creates a new client. Configuration options:
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `APIKey` | `string` | (required) | Your PromptKit API key |
+| `Environment` | `string` | `"prod"` | Environment name |
+| `BaseURL` | `string` | `"https://app.promptkit.dev"` | API base URL |
+| `SyncIntervalMs` | `int` | `30000` | Background sync interval in ms |
+
+### `Initialize() error`
+
+Fetches config from the server and starts background sync. Called automatically by `Compose` if not called explicitly.
+
+### `Compose(name string, ctx ComposeContext) (*ComposeResult, error)`
+
+Assembles a prompt locally using cached config. Returns the assembled text, token count, block list, and a unique assembly ID.
+
+### `Track(assemblyID string, payload TrackPayload) error`
+
+Sends an LLM input/output pair to PromptKit for auto-scoring.
+
+### `Score(assemblyID string, metrics map[string]interface{}) error`
+
+Sends manual metrics for an assembly.
+
+### `Close()`
+
+Stops background config sync. Call when the client is no longer needed.
