@@ -1,7 +1,7 @@
-// Package promptkit provides the official Go SDK for PromptKit — the prompt
+// Package promptkit provides the official Go SDK for Composr — the prompt
 // compiler for AI-first teams.
 //
-// It connects to the PromptKit API, syncs composition config in the background,
+// It connects to the Composr API, syncs composition config in the background,
 // and assembles prompts locally using a graph-walking engine.
 package promptkit
 
@@ -35,7 +35,7 @@ func New(cfg Config) *PromptKit {
 		cfg.Environment = "prod"
 	}
 	if cfg.BaseURL == "" {
-		cfg.BaseURL = "https://app.promptkit.dev"
+		cfg.BaseURL = "https://app.composr.dev"
 	}
 	interval := time.Duration(cfg.SyncIntervalMs) * time.Millisecond
 	if interval == 0 {

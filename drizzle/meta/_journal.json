@@ -8,6 +8,27 @@
       "when": 1774884344881,
       "tag": "0000_same_shriek",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774887257877,
+      "tag": "0001_square_marauders",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774891168044,
+      "tag": "0002_tricky_wrecker",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1774891278539,
+      "tag": "0003_chubby_patch",
+      "breakpoints": true
     }
   ]
 }

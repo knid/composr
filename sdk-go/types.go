@@ -4,7 +4,7 @@ package promptkit
 type Config struct {
 	APIKey         string
 	Environment    string // "dev", "staging", "prod" (default: "prod")
-	BaseURL        string // default: "https://app.promptkit.dev"
+	BaseURL        string // default: "https://app.composr.dev"
 	SyncIntervalMs int    // default: 30000
 }
 

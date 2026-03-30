@@ -1,11 +1,11 @@
-# PromptKit Go SDK
+# Composr Go SDK
 
-The official Go SDK for [PromptKit](https://promptkit.dev) -- the prompt compiler for AI-first teams.
+The official Go SDK for [Composr](https://composr.dev) -- the prompt compiler for AI-first teams.
 
 ## Install
 
 ```bash
-go get github.com/promptkit/sdk-go
+go get github.com/composr/sdk-go
 ```
 
 ## Usage
@@ -16,7 +16,7 @@ package main
 import (
     "fmt"
     "log"
-    promptkit "github.com/promptkit/sdk-go"
+    promptkit "github.com/composr/sdk-go"
 )
 
 func main() {
@@ -55,15 +55,15 @@ func main() {
 
 ## API
 
-### `New(cfg Config) *PromptKit`
+### `New(cfg Config) *Composr`
 
 Creates a new client. Configuration options:
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `APIKey` | `string` | (required) | Your PromptKit API key |
+| `APIKey` | `string` | (required) | Your Composr API key |
 | `Environment` | `string` | `"prod"` | Environment name |
-| `BaseURL` | `string` | `"https://app.promptkit.dev"` | API base URL |
+| `BaseURL` | `string` | `"https://app.composr.dev"` | API base URL |
 | `SyncIntervalMs` | `int` | `30000` | Background sync interval in ms |
 
 ### `Initialize() error`
@@ -76,7 +76,7 @@ Assembles a prompt locally using cached config. Returns the assembled text, toke
 
 ### `Track(assemblyID string, payload TrackPayload) error`
 
-Sends an LLM input/output pair to PromptKit for auto-scoring.
+Sends an LLM input/output pair to Composr for auto-scoring.
 
 ### `Score(assemblyID string, metrics map[string]interface{}) error`
 

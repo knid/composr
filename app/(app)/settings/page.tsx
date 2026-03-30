@@ -77,11 +77,11 @@ export default function SettingsPage() {
       <section>
         <h2 className="text-sm font-semibold mb-3">SDK Quick Start</h2>
         <pre className="rounded-lg border border-border bg-card p-4 font-mono text-xs text-muted-foreground overflow-x-auto">
-{`npm install @promptkit/sdk
+{`npm install @composr/sdk
 
-import { PromptKit } from '@promptkit/sdk'
+import { Composr } from '@composr/sdk'
 
-const pk = new PromptKit({
+const pk = new Composr({
   apiKey: 'pk_live_...',
   environment: 'prod'
 })

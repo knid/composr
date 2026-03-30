@@ -1,5 +1,5 @@
 {
-  "name": "@promptkit/sdk",
+  "name": "@composr/sdk",
   "version": "0.1.0",
   "description": "",
   "main": "dist/index.js",

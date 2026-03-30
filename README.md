@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/placeholder-logo" alt="PromptKit" width="80" />
+  <img src="https://github.com/user-attachments/assets/placeholder-logo" alt="Composr" width="80" />
 </p>
 
-<h1 align="center">PromptKit</h1>
+<h1 align="center">Composr</h1>
 
 <p align="center">
   <strong>The prompt compiler for AI-first teams.</strong><br />
@@ -10,30 +10,30 @@
 </p>
 
 <p align="center">
-  <a href="https://promptkit.dev/docs">Docs</a> &middot;
-  <a href="https://promptkit.dev/docs/quickstart">Quickstart</a> &middot;
-  <a href="https://app.promptkit.dev">Dashboard</a> &middot;
-  <a href="https://promptkit.dev/discord">Discord</a>
+  <a href="https://composr.dev/docs">Docs</a> &middot;
+  <a href="https://composr.dev/docs/quickstart">Quickstart</a> &middot;
+  <a href="https://app.composr.dev">Dashboard</a> &middot;
+  <a href="https://composr.dev/discord">Discord</a>
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@promptkit/sdk"><img src="https://img.shields.io/npm/v/@promptkit/sdk?style=flat-square&color=7c3aed&label=npm" alt="npm" /></a>
-  <a href="https://pkg.go.dev/github.com/promptkit/sdk-go"><img src="https://img.shields.io/badge/go-pkg.go.dev-7c3aed?style=flat-square" alt="Go" /></a>
-  <a href="https://github.com/promptkit/promptkit/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-7c3aed?style=flat-square" alt="License" /></a>
-  <a href="https://promptkit.dev/discord"><img src="https://img.shields.io/badge/discord-join-7c3aed?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
+  <a href="https://www.npmjs.com/package/@composr/sdk"><img src="https://img.shields.io/npm/v/@composr/sdk?style=flat-square&color=7c3aed&label=npm" alt="npm" /></a>
+  <a href="https://pkg.go.dev/github.com/composr/sdk-go"><img src="https://img.shields.io/badge/go-pkg.go.dev-7c3aed?style=flat-square" alt="Go" /></a>
+  <a href="https://github.com/composr/composr/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-7c3aed?style=flat-square" alt="License" /></a>
+  <a href="https://composr.dev/discord"><img src="https://img.shields.io/badge/discord-join-7c3aed?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
 </p>
 
 <br />
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/placeholder-screenshot" alt="PromptKit Editor" width="800" />
+  <img src="https://github.com/user-attachments/assets/placeholder-screenshot" alt="Composr Editor" width="800" />
 </p>
 
 ---
 
 Existing tools treat prompts as flat documents with variable slots. **Real prompt systems are programs** — with shared blocks, conditional branches, A/B variants, and multi-step pipelines.
 
-PromptKit is the first tool to treat them that way. Think **n8n for prompts** — a visual flow editor where blocks are nodes, conditions are IF gates, and experiments are percentage splits. Your SDK assembles prompts locally in <1ms from synced configs. No deploys to change a prompt. Ever.
+Composr is the first tool to treat them that way. Think **n8n for prompts** — a visual flow editor where blocks are nodes, conditions are IF gates, and experiments are percentage splits. Your SDK assembles prompts locally in <1ms from synced configs. No deploys to change a prompt. Ever.
 
 <br />
 
@@ -43,7 +43,7 @@ PromptKit is the first tool to treat them that way. Think **n8n for prompts** �
 
 <h3>I use AI in production</h3>
 
-Stop hardcoding prompts in Go constants, Python strings, and config files. Move them to PromptKit and get versioning, A/B testing, and scoring for free.
+Stop hardcoding prompts in Go constants, Python strings, and config files. Move them to Composr and get versioning, A/B testing, and scoring for free.
 
 **[Jump to quickstart](#quickstart)**
 
@@ -62,11 +62,11 @@ See why teams at AI-first companies are switching from flat prompt management to
 
 ---
 
-## Why PromptKit?
+## Why Composr?
 
 Every AI company hits the same wall. You start with a few prompts hardcoded in your backend. Then you need variants for different contexts. Then conditional blocks. Then A/B testing. Suddenly you're managing a complex prompt program in raw code — and every change requires a PR, review, deploy, and pray.
 
-| Pain | Before PromptKit | With PromptKit |
+| Pain | Before Composr | With Composr |
 |------|-------------------|----------------|
 | Changing a prompt | Code PR &rarr; review &rarr; deploy &rarr; 30 min | Edit in UI &rarr; publish &rarr; 2 seconds |
 | Testing variants | Manual, no data | A/B split with statistical significance |
@@ -101,11 +101,11 @@ Every AI company hits the same wall. You start with a few prompts hardcoded in y
 ### 1. Install the SDK
 
 ```bash
-npm install @promptkit/sdk
+npm install @composr/sdk
 ```
 
 ```bash
-go get github.com/promptkit/sdk-go
+go get github.com/composr/sdk-go
 ```
 
 ### 2. Three lines to assemble a prompt
@@ -113,9 +113,9 @@ go get github.com/promptkit/sdk-go
 **TypeScript:**
 
 ```typescript
-import { PromptKit } from '@promptkit/sdk'
+import { Composr } from '@composr/sdk'
 
-const pk = new PromptKit({ apiKey: 'pk_live_...', environment: 'prod' })
+const pk = new Composr({ apiKey: 'pk_live_...', environment: 'prod' })
 
 const result = await pk.compose('builder', {
   projectType: 'ecommerce',
@@ -170,7 +170,7 @@ That's it. Your prompts are now managed, versioned, scored, and A/B testable.
 Your application
        |
        v
-   PromptKit SDK (local, <1ms)
+   Composr SDK (local, <1ms)
        |
        |── 1. Syncs config on startup (REST + SSE for live updates)
        |── 2. Caches compositions + blocks in memory
@@ -271,10 +271,10 @@ No experiment setup. No SDK changes. Just add a node and connect it.
 
 ## Self-Hosting
 
-PromptKit is open source. Deploy it anywhere:
+Composr is open source. Deploy it anywhere:
 
 ```bash
-git clone https://github.com/promptkit/promptkit
+git clone https://github.com/composr/composr
 cd promptkit
 cp .env.example .env.local
 # Edit .env.local with your Clerk + Neon credentials
@@ -285,7 +285,7 @@ npm run dev
 
 Or deploy to Vercel in one click:
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/promptkit/promptkit)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/composr/composr)
 
 ---
 
@@ -306,8 +306,8 @@ promptkit/
 │   ├── expression-parser.ts # Safe expression evaluator
 │   ├── statistics.ts       # Welch's t-test for experiments
 │   └── eval-runner.ts      # LLM-as-judge scorer
-├── sdk/                    # TypeScript SDK (@promptkit/sdk)
-└── sdk-go/                 # Go SDK (github.com/promptkit/sdk-go)
+├── sdk/                    # TypeScript SDK (@composr/sdk)
+└── sdk-go/                 # Go SDK (github.com/composr/sdk-go)
 ```
 
 **Tech stack:** Next.js 16 &middot; TypeScript &middot; Tailwind CSS &middot; shadcn/ui &middot; React Flow &middot; Drizzle ORM &middot; Neon Postgres &middot; Clerk
@@ -319,12 +319,12 @@ promptkit/
 ### TypeScript
 
 ```bash
-npm install @promptkit/sdk
+npm install @composr/sdk
 ```
 
 | Method | Description |
 |--------|-------------|
-| `new PromptKit(config)` | Initialize with API key and environment |
+| `new Composr(config)` | Initialize with API key and environment |
 | `pk.compose(name, context)` | Assemble a prompt locally (<1ms) |
 | `pk.track(id, payload)` | Send LLM output for auto-scoring |
 | `pk.score(id, metrics)` | Send manual metrics |
@@ -333,7 +333,7 @@ npm install @promptkit/sdk
 ### Go
 
 ```bash
-go get github.com/promptkit/sdk-go
+go get github.com/composr/sdk-go
 ```
 
 | Method | Description |
@@ -348,11 +348,11 @@ go get github.com/promptkit/sdk-go
 
 ```bash
 # Compose
-curl -X POST https://app.promptkit.dev/api/sdk/config/prod \
+curl -X POST https://app.composr.dev/api/sdk/config/prod \
   -H "Authorization: Bearer pk_live_..."
 
 # Track
-curl -X POST https://app.promptkit.dev/api/sdk/track \
+curl -X POST https://app.composr.dev/api/sdk/track \
   -H "Authorization: Bearer pk_live_..." \
   -H "Content-Type: application/json" \
   -d '{"assemblyId":"asm_...","input":"...","output":"...","model":"claude-sonnet-4.6"}'
@@ -362,7 +362,7 @@ curl -X POST https://app.promptkit.dev/api/sdk/track \
 
 ## Comparison
 
-| | PromptKit | Langfuse | Braintrust | Humanloop |
+| | Composr | Langfuse | Braintrust | Humanloop |
 |---|---|---|---|---|
 | Composable blocks | Yes | No | No | No |
 | Visual flow editor | Yes (React Flow) | No | No | No |
@@ -375,7 +375,7 @@ curl -X POST https://app.promptkit.dev/api/sdk/track \
 | Open source | Yes (MIT) | Yes (MIT) | No | No |
 | Self-hostable | Yes | Yes | No | No |
 
-**PromptKit treats prompts as programs. Everyone else treats them as documents.**
+**Composr treats prompts as programs. Everyone else treats them as documents.**
 
 ---
 
@@ -384,7 +384,7 @@ curl -X POST https://app.promptkit.dev/api/sdk/track \
 We love contributions. Check out the [Contributing Guide](CONTRIBUTING.md) for setup instructions and guidelines.
 
 ```bash
-git clone https://github.com/promptkit/promptkit
+git clone https://github.com/composr/composr
 cd promptkit
 npm install
 cp .env.example .env.local
@@ -395,8 +395,8 @@ npm run dev
 
 ## Community
 
-- [Discord](https://promptkit.dev/discord) — Chat with the team and other users
-- [GitHub Discussions](https://github.com/promptkit/promptkit/discussions) — Questions and feature requests
+- [Discord](https://composr.dev/discord) — Chat with the team and other users
+- [GitHub Discussions](https://github.com/composr/composr/discussions) — Questions and feature requests
 - [Twitter / X](https://twitter.com/promptkit) — Updates and announcements
 
 ---

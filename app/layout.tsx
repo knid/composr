@@ -7,7 +7,7 @@ import { Toaster } from "sonner"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "PromptKit",
+  title: "Composr",
   description: "The prompt compiler for AI-first teams",
 }
 

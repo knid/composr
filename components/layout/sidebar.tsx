@@ -27,9 +27,9 @@ export function Sidebar() {
     <aside className="flex h-dvh w-[200px] flex-col border-r border-border bg-background p-2">
       <div className="flex items-center gap-2 px-2 py-1 mb-4">
         <div className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-primary to-blue-500">
-          <span className="text-[10px] font-extrabold text-white">P</span>
+          <span className="text-[10px] font-extrabold text-white">C</span>
         </div>
-        <span className="text-sm font-semibold tracking-tight">PromptKit</span>
+        <span className="text-sm font-semibold tracking-tight">Composr</span>
       </div>
 
       <nav className="flex flex-1 flex-col gap-0.5">

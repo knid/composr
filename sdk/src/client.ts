@@ -11,7 +11,7 @@ export class PromptKit {
 
   constructor(options: PromptKitConfig) {
     this.apiKey = options.apiKey
-    this.baseUrl = options.baseUrl ?? "https://app.promptkit.dev"
+    this.baseUrl = options.baseUrl ?? "https://app.composr.dev"
     this.environment = options.environment ?? "prod"
     this.syncInterval = options.syncIntervalMs ?? 30_000
   }
@@ -25,7 +25,7 @@ export class PromptKit {
     const res = await fetch(`${this.baseUrl}/api/sdk/config/${this.environment}`, {
       headers: { Authorization: `Bearer ${this.apiKey}` },
     })
-    if (!res.ok) throw new Error(`PromptKit: config fetch failed (${res.status})`)
+    if (!res.ok) throw new Error(`Composr: config fetch failed (${res.status})`)
     this.config = await res.json()
   }
 

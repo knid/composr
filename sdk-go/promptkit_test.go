@@ -19,8 +19,8 @@ func TestNew_Defaults(t *testing.T) {
 	if pk.environment != "prod" {
 		t.Errorf("environment = %q, want %q", pk.environment, "prod")
 	}
-	if pk.baseURL != "https://app.promptkit.dev" {
-		t.Errorf("baseURL = %q, want %q", pk.baseURL, "https://app.promptkit.dev")
+	if pk.baseURL != "https://app.composr.dev" {
+		t.Errorf("baseURL = %q, want %q", pk.baseURL, "https://app.composr.dev")
 	}
 	if pk.syncInterval != 30*time.Second {
 		t.Errorf("syncInterval = %v, want %v", pk.syncInterval, 30*time.Second)
