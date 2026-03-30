@@ -397,7 +397,7 @@ npm run dev
 
 - [Discord](https://composr.dev/discord) — Chat with the team and other users
 - [GitHub Discussions](https://github.com/composr/composr/discussions) — Questions and feature requests
-- [Twitter / X](https://twitter.com/promptkit) — Updates and announcements
+- [Twitter / X](https://twitter.com/composrdev) — Updates and announcements
 
 ---
 
