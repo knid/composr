@@ -7,6 +7,7 @@ import { Target } from "lucide-react"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { mean } from "@/lib/statistics"
 import { Badge } from "@/components/ui/badge"
+import { RunEvalButton } from "@/components/scoring/run-eval-button"
 
 export const dynamic = "force-dynamic"
 
@@ -88,6 +89,7 @@ export default async function ScoringPage() {
                   <th className="px-3 py-2 text-left font-medium text-muted-foreground">Variant</th>
                   <th className="px-3 py-2 text-right font-medium text-muted-foreground">Score</th>
                   <th className="px-3 py-2 text-left font-medium text-muted-foreground">Model</th>
+                  <th className="px-3 py-2 text-right font-medium text-muted-foreground">Eval</th>
                 </tr>
               </thead>
               <tbody>
@@ -115,6 +117,9 @@ export default async function ScoringPage() {
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">
                       {score.model ?? "—"}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <RunEvalButton scoreId={score.id} evalStatus={score.evalStatus} />
                     </td>
                   </tr>
                 ))}

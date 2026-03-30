@@ -9,7 +9,7 @@ interface IfPercentageData {
 const variantColors = ["#4ade80", "#f59e0b", "#06b6d4", "#ec4899", "#8b5cf6"]
 
 export function IfPercentageNode({ data }: NodeProps) {
-  const { variants = [] } = data as IfPercentageData
+  const { variants = [] } = data as unknown as IfPercentageData
 
   return (
     <div className="rounded-lg border-2 border-primary bg-primary/5 px-3 py-2 min-w-[150px]">

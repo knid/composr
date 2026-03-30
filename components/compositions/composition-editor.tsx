@@ -9,7 +9,7 @@ import { PreviewPanel } from "@/components/editor/preview-panel"
 import { ContextSchemaEditor, type ContextField } from "@/components/editor/context-schema-editor"
 import { EvalConfigPanel } from "./eval-config-panel"
 import { Button } from "@/components/ui/button"
-import { Save, Trash2, Rocket, FlaskConical, Braces } from "lucide-react"
+import { Save, Trash2, Rocket, FlaskConical, Braces, Eye } from "lucide-react"
 import { toast } from "sonner"
 import type { Node, Edge } from "@xyflow/react"
 import {
@@ -50,6 +50,9 @@ export function CompositionEditor({
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
   const [blocks, setBlocks] = useState<BlockInfo[]>([])
   const [contextSchema, setContextSchema] = useState<ContextField[]>(initialContextSchema ?? [])
+  const [previewOpen, setPreviewOpen] = useState(true)
+  const [liveNodes, setLiveNodes] = useState<Node[]>(initialNodes)
+  const [liveEdges, setLiveEdges] = useState<Edge[]>(initialEdges)
 
   const graphRef = useRef<{ nodes: Node[]; edges: Edge[] }>({
     nodes: initialNodes,
@@ -73,6 +76,8 @@ export function CompositionEditor({
   /* Graph change callback */
   const onGraphChange = useCallback((nodes: Node[], edges: Edge[]) => {
     graphRef.current = { nodes, edges }
+    setLiveNodes(nodes)
+    setLiveEdges(edges)
     if (initialRef.current) {
       initialRef.current = false
       return
@@ -186,6 +191,14 @@ export function CompositionEditor({
           </Button>
           <Button
             size="sm"
+            variant={previewOpen ? "default" : "outline"}
+            className="gap-1.5"
+            onClick={() => setPreviewOpen(!previewOpen)}
+          >
+            <Eye className="h-3.5 w-3.5" /> Preview
+          </Button>
+          <Button
+            size="sm"
             variant="outline"
             className="gap-1.5"
             onClick={() => setSchemaOpen(true)}
@@ -247,12 +260,14 @@ export function CompositionEditor({
       </div>
 
       {/* ── Bottom: Preview Panel ── */}
-      <PreviewPanel
-        nodes={graphRef.current.nodes}
-        edges={graphRef.current.edges}
-        blocks={blockLookup}
-        contextSchema={contextSchema}
-      />
+      {previewOpen && (
+        <PreviewPanel
+          nodes={liveNodes}
+          edges={liveEdges}
+          blocks={blockLookup}
+          contextSchema={contextSchema}
+        />
+      )}
 
       {/* ── Dialogs ── */}
       <ContextSchemaEditor

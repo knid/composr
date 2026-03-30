@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Key, Copy, Plus } from "lucide-react"
+import { Key, Copy, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 export default function SettingsPage() {
@@ -26,6 +26,14 @@ export default function SettingsPage() {
     setRevealedKey(data.key)
     setNewKeyName("")
     fetch("/api/api-keys").then((r) => r.json()).then((data) => { if (Array.isArray(data)) setKeys(data) })
+  }
+
+  async function deleteKey(id: string) {
+    const res = await fetch(`/api/api-keys/${id}`, { method: "DELETE" })
+    if (res.ok) {
+      setKeys(keys.filter((k) => k.id !== id))
+      toast.success("Key deleted")
+    }
   }
 
   return (
@@ -55,6 +63,10 @@ export default function SettingsPage() {
               <span className="text-sm font-medium">{k.name}</span>
               <code className="font-mono text-xs text-muted-foreground">{k.keyPrefix}</code>
               <span className="ml-auto rounded bg-secondary px-2 py-0.5 text-[10px]">{k.environment}</span>
+              <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                onClick={() => deleteKey(k.id)}>
+                <Trash2 className="h-3 w-3" />
+              </Button>
             </div>
           ))}
         </div>

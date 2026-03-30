@@ -4,9 +4,9 @@ import { auth } from "@clerk/nextjs/server"
 import { eq, desc } from "drizzle-orm"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { Plus, GitBranch } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { GitBranch } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { NewCompositionButton } from "@/components/compositions/new-composition-button"
 
 export const dynamic = "force-dynamic"
 
@@ -24,9 +24,7 @@ export default async function CompositionsPage() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-lg font-semibold tracking-tight">Compositions</h1>
-        <Button size="sm" className="gap-1.5">
-          <Plus className="h-3.5 w-3.5" /> New Composition
-        </Button>
+        <NewCompositionButton />
       </div>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {comps.map((comp) => {
