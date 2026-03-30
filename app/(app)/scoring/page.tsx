@@ -8,6 +8,7 @@ import { StatCard } from "@/components/dashboard/stat-card"
 import { mean } from "@/lib/statistics"
 import { Badge } from "@/components/ui/badge"
 import { RunEvalButton } from "@/components/scoring/run-eval-button"
+import { LineChartCard } from "@/components/charts/line-chart-card"
 
 export const dynamic = "force-dynamic"
 
@@ -47,6 +48,25 @@ export default async function ScoringPage() {
     count: values.length,
   }))
 
+  // Score trends over last 30 days
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+  const scoreByDay = new Map<string, number[]>()
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000)
+    scoreByDay.set(d.toISOString().split("T")[0], [])
+  }
+  for (const s of recentScores) {
+    if (s.overallScore === null) continue
+    if (new Date(s.createdAt) < thirtyDaysAgo) continue
+    const day = new Date(s.createdAt).toISOString().split("T")[0]
+    const arr = scoreByDay.get(day)
+    if (arr) arr.push(s.overallScore)
+  }
+  const scoreTrendData = Array.from(scoreByDay.entries()).map(([date, values]) => ({
+    label: date.slice(5),
+    value: values.length > 0 ? Math.round(mean(values)) : 0,
+  }))
+
   return (
     <div>
       <h1 className="text-lg font-semibold tracking-tight mb-4">Scoring</h1>
@@ -78,6 +98,10 @@ export default async function ScoringPage() {
               </div>
             </>
           )}
+
+          <div className="mb-6">
+            <LineChartCard title="Score Trends (last 30 days)" data={scoreTrendData} color="#22c55e" />
+          </div>
 
           <h2 className="text-sm font-semibold text-muted-foreground mb-3">Recent Scores</h2>
           <div className="rounded-xl border border-border overflow-hidden">
