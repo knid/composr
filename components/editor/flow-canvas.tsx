@@ -193,6 +193,7 @@ const FlowCanvasInner = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
           onPaneClick={handlePaneClick}
           isValidConnection={isValidConnection}
           nodeTypes={nodeTypes}
+          connectionMode="loose"
           fitView
           proOptions={{ hideAttribution: true }}
           className="bg-background"
