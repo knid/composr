@@ -104,6 +104,22 @@ const FlowCanvasInner = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
       [nodes]
     )
 
+    /* Prevent invalid connections */
+    const isValidConnection = useCallback(
+      (connection: Connection) => {
+        // No self-connections
+        if (connection.source === connection.target) return false
+        // No connecting to Start
+        const targetNode = nodes.find((n) => n.id === connection.target)
+        if (targetNode?.type === "start") return false
+        // No connecting from Output
+        const sourceNode = nodes.find((n) => n.id === connection.source)
+        if (sourceNode?.type === "output") return false
+        return true
+      },
+      [nodes]
+    )
+
     /* Connect handler */
     const onConnect = useCallback(
       (connection: Connection) => {
@@ -114,8 +130,9 @@ const FlowCanvasInner = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
           target: connection.target,
           sourceHandle: connection.sourceHandle,
           targetHandle: connection.targetHandle,
+          type: "smoothstep",
           animated: true,
-          style: { stroke: "#27272a" },
+          style: { stroke: "#52525b", strokeWidth: 2 },
           ...labelProps,
         }
         setEdges((eds) => addEdge(edge, eds))
@@ -174,13 +191,16 @@ const FlowCanvasInner = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
           onConnect={onConnect}
           onNodeClick={handleNodeClick}
           onPaneClick={handlePaneClick}
+          isValidConnection={isValidConnection}
           nodeTypes={nodeTypes}
           fitView
           proOptions={{ hideAttribution: true }}
           className="bg-background"
+          connectionLineStyle={{ stroke: "#7c3aed", strokeWidth: 2 }}
           defaultEdgeOptions={{
+            type: "smoothstep",
             animated: true,
-            style: { stroke: "#27272a" },
+            style: { stroke: "#52525b", strokeWidth: 2 },
           }}
         >
           <Background variant={BackgroundVariant.Dots} gap={24} size={1} color="#27272a" />
