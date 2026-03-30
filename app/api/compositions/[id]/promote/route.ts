@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server"
 import { eq, and } from "drizzle-orm"
 import { NextResponse } from "next/server"
 import { logAudit } from "@/lib/audit"
+import { configEvents } from "@/lib/config-events"
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { orgId, userId } = await auth()
@@ -35,6 +36,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .returning()
 
   await logAudit({ teamId: orgId, userId, action: "deployment.promoted", resourceType: "deployment", resourceId: deployment.id, metadata: { environment, version: composition.version } })
+
+  configEvents.notify(orgId)
 
   return NextResponse.json(deployment, { status: 201 })
 }

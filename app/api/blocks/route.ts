@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server"
 import { eq, desc } from "drizzle-orm"
 import { NextResponse } from "next/server"
 import { logAudit } from "@/lib/audit"
+import { configEvents } from "@/lib/config-events"
 
 export async function GET() {
   const { orgId } = await auth()
@@ -41,6 +42,8 @@ export async function POST(req: Request) {
   })
 
   await logAudit({ teamId: orgId, userId, action: "block.created", resourceType: "block", resourceId: block.id, metadata: { name: block.name } })
+
+  configEvents.notify(orgId)
 
   return NextResponse.json(block, { status: 201 })
 }
