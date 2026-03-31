@@ -7,14 +7,14 @@ import { ChevronUp, ChevronDown, Blocks, Hash } from "lucide-react"
 interface PreviewPanelProps {
   nodes: any[]
   edges: any[]
-  blocks: Record<string, { name: string; content: string }>
+  blocks: Record<string, { name: string; content: string; role?: string | null }>
   contextSchema: Array<{ name: string; type: string; values?: string[] }>
 }
 
 export function PreviewPanel({ nodes, edges, blocks, contextSchema }: PreviewPanelProps) {
   const [expanded, setExpanded] = useState(true)
   const [context, setContext] = useState<Record<string, any>>({})
-  const [tab, setTab] = useState<"preview" | "blocks">("preview")
+  const [tab, setTab] = useState<"preview" | "messages" | "blocks">("preview")
   const [autoMetaOpen, setAutoMetaOpen] = useState(false)
   const [autoMeta, setAutoMeta] = useState({
     hour: new Date().getHours(),
@@ -89,6 +89,14 @@ export function PreviewPanel({ nodes, edges, blocks, contextSchema }: PreviewPan
               }`}
             >
               Assembled Output
+            </button>
+            <button
+              onClick={() => setTab("messages")}
+              className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
+                tab === "messages" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Messages
             </button>
             <button
               onClick={() => setTab("blocks")}
@@ -210,7 +218,33 @@ export function PreviewPanel({ nodes, edges, blocks, contextSchema }: PreviewPan
                 </div>
               )}
               <div className="p-3">
-              {tab === "preview" ? (
+              {tab === "messages" ? (
+                <div className="space-y-2">
+                  {(result as any).messages?.length > 0 ? (
+                    (result as any).messages.map((msg: { role: string; content: string }, i: number) => (
+                      <div key={i} className="rounded-lg border border-border bg-background p-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`rounded px-1.5 py-px text-[9px] font-semibold uppercase ${
+                            msg.role === "system" ? "bg-blue-500/20 text-blue-400" :
+                            msg.role === "user" ? "bg-amber-500/20 text-amber-400" :
+                            "bg-purple-500/20 text-purple-400"
+                          }`}>
+                            {msg.role}
+                          </span>
+                          <span className="ml-auto font-mono text-[9px] text-muted-foreground">{msg.content.length} chars</span>
+                        </div>
+                        <pre className="whitespace-pre-wrap font-mono text-[10px] leading-relaxed text-muted-foreground/80 max-h-32 overflow-y-auto">
+                          {msg.content}
+                        </pre>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-muted-foreground/50 italic py-4 text-center">
+                      No messages assembled. Connect blocks to see the message output.
+                    </p>
+                  )}
+                </div>
+              ) : tab === "preview" ? (
                 <pre className="whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-muted-foreground">
                   {result.text || (
                     <span className="text-muted-foreground/50 italic">

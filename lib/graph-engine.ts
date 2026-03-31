@@ -1,5 +1,6 @@
 import { selectVariant } from "./hash"
 import { evaluateExpression } from "./expression-parser"
+import { renderTemplate, resolveContextValue } from "./template-engine"
 
 interface GraphNode {
   id: string
@@ -15,11 +16,17 @@ interface GraphEdge {
 }
 
 interface BlockLookup {
-  [blockId: string]: { content: string; name: string }
+  [blockId: string]: { content: string; name: string; role?: string | null }
+}
+
+export interface Message {
+  role: string
+  content: string
 }
 
 interface AssemblyResult {
   text: string
+  messages: Message[]
   blocks: string[]
   skippedBlocks: string[]
   tokenCount: number
@@ -27,11 +34,31 @@ interface AssemblyResult {
   variantId: string | null
 }
 
+interface CompositionLookup {
+  [compositionId: string]: {
+    name: string
+    graph: { nodes: GraphNode[]; edges: GraphEdge[] }
+  }
+}
+
+interface ContextSchemaField {
+  name: string
+  type?: string
+  required?: boolean
+  description?: string
+}
+
 export function assembleGraph(
   nodes: GraphNode[],
   edges: GraphEdge[],
   blocks: BlockLookup,
-  context: Record<string, any>
+  context: Record<string, any>,
+  options?: {
+    compositions?: CompositionLookup
+    contextSchema?: ContextSchemaField[]
+    sanitize?: boolean
+    _visitedCompositions?: Set<string>
+  }
 ): AssemblyResult {
   const nodeMap = new Map(nodes.map((n) => [n.id, n]))
   const edgesBySource = new Map<string, GraphEdge[]>()
@@ -40,11 +67,37 @@ export function assembleGraph(
     edgesBySource.get(edge.source)!.push(edge)
   }
 
-  const result: string[] = []
+  const parts: string[] = []
+  const messages: Message[] = []
   const resolvedBlocks: string[] = []
   const errors: string[] = []
   const visited = new Set<string>()
   let variantId: string | null = null
+
+  // Context schema validation
+  if (options?.contextSchema) {
+    for (const field of options.contextSchema) {
+      if (field.required) {
+        const value = resolveContextValue(context, field.name)
+        if (value === undefined || value === null) {
+          errors.push(`Required context field missing: '${field.name}'`)
+        }
+      }
+    }
+  }
+
+  // Sanitize context values if requested
+  const renderCtx = options?.sanitize ? sanitizeContext(context) : context
+
+  let currentRole: string | null = null
+  let currentRoleContent: string[] = []
+
+  function flushRole() {
+    if (currentRoleContent.length > 0 && currentRole) {
+      messages.push({ role: currentRole, content: currentRoleContent.join("\n\n") })
+      currentRoleContent = []
+    }
+  }
 
   function walk(nodeId: string) {
     if (visited.has(nodeId)) {
@@ -64,16 +117,68 @@ export function assembleGraph(
         const blockId = node.data.blockId as string
         const block = blocks[blockId]
         if (block) {
-          let content = block.content
-          // Interpolate {{variables}}
-          content = content.replace(/\{\{(\w+)\}\}/g, (_, key) => {
-            return context[key] !== undefined ? String(context[key]) : `{{${key}}}`
-          })
-          result.push(content)
+          const content = renderTemplate(block.content, renderCtx)
+          parts.push(content)
           resolvedBlocks.push(block.name)
+
+          // Multi-message support: track role transitions
+          const blockRole = block.role || "system"
+          if (currentRole !== null && currentRole !== blockRole) {
+            flushRole()
+          }
+          currentRole = blockRole
+          currentRoleContent.push(content)
         } else {
           errors.push(`Block not found: ${blockId}`)
         }
+        break
+      }
+
+      case "compositionRef": {
+        const compositionId = node.data.compositionId as string
+        const compositions = options?.compositions
+        if (!compositions || !compositions[compositionId]) {
+          errors.push(`Composition not found for ref: ${compositionId}`)
+          break
+        }
+
+        // Cycle detection across compositions
+        const visitedComps = options?._visitedCompositions ?? new Set<string>()
+        if (visitedComps.has(compositionId)) {
+          errors.push(`Circular composition reference detected: ${compositionId}`)
+          break
+        }
+
+        const comp = compositions[compositionId]
+        const childVisited = new Set(visitedComps)
+        childVisited.add(compositionId)
+
+        const childResult = assembleGraph(
+          comp.graph.nodes,
+          comp.graph.edges,
+          blocks,
+          renderCtx,
+          {
+            compositions,
+            sanitize: options?.sanitize,
+            _visitedCompositions: childVisited,
+          }
+        )
+
+        if (childResult.text) {
+          parts.push(childResult.text)
+          // Merge child messages into current
+          for (const msg of childResult.messages) {
+            if (currentRole !== null && currentRole !== msg.role) {
+              flushRole()
+            }
+            currentRole = msg.role
+            currentRoleContent.push(msg.content)
+          }
+        }
+        resolvedBlocks.push(...childResult.blocks)
+        errors.push(...childResult.errors)
+        if (childResult.variantId) variantId = childResult.variantId
         break
       }
 
@@ -166,6 +271,9 @@ export function assembleGraph(
   const startNode = nodes.find((n) => n.type === "start")
   if (startNode) walk(startNode.id)
 
+  // Flush any remaining role content
+  flushRole()
+
   // Determine which block nodes were skipped (not on the taken path)
   const allBlockNames = nodes
     .filter((n) => n.type === "block")
@@ -176,11 +284,12 @@ export function assembleGraph(
     .filter((name): name is string => name !== null)
   const skippedBlocks = allBlockNames.filter((name) => !resolvedBlocks.includes(name))
 
-  const text = result.join("\n\n")
+  const text = parts.join("\n\n")
   const words = text.split(/\s+/).filter((w) => w.length > 0)
   const tokenCount = Math.round(words.length * 1.3)
   return {
     text,
+    messages,
     blocks: resolvedBlocks,
     skippedBlocks,
     tokenCount,
@@ -189,12 +298,22 @@ export function assembleGraph(
   }
 }
 
-function resolveContextValue(context: Record<string, any>, path: string): any {
-  const parts = path.split(".")
-  let current: any = context
-  for (const part of parts) {
-    if (current === undefined || current === null) return undefined
-    current = current[part]
+/**
+ * Deep-clone context and escape values that could be used for prompt injection.
+ */
+function sanitizeContext(context: Record<string, any>): Record<string, any> {
+  const sanitized: Record<string, any> = {}
+  for (const [key, value] of Object.entries(context)) {
+    if (typeof value === "string") {
+      sanitized[key] = value
+        .replace(/\{\{/g, "{ {")
+        .replace(/\}\}/g, "} }")
+        .replace(/<\/?[a-zA-Z_][\w-]*[^>]*>/g, (tag) => tag.replace(/</g, "&lt;").replace(/>/g, "&gt;"))
+    } else if (value && typeof value === "object" && !Array.isArray(value)) {
+      sanitized[key] = sanitizeContext(value)
+    } else {
+      sanitized[key] = value
+    }
   }
-  return current
+  return sanitized
 }

@@ -142,23 +142,6 @@ func isDigit(b byte) bool {
 	return b >= '0' && b <= '9'
 }
 
-// resolveContextPath traverses a nested map using dot-separated keys.
-func resolveContextPath(ctx map[string]interface{}, path string) interface{} {
-	parts := strings.Split(path, ".")
-	var current interface{} = ctx
-	for _, part := range parts {
-		if current == nil {
-			return nil
-		}
-		m, ok := current.(map[string]interface{})
-		if !ok {
-			return nil
-		}
-		current = m[part]
-	}
-	return current
-}
-
 // evaluateComparison evaluates an atomic comparison expression (no logical
 // operators at the top level). Handles: ==, !=, >=, <=, >, <.
 // Also handles bare truthy expressions (no operator).
@@ -283,24 +266,7 @@ func toFloat64(v interface{}) float64 {
 	}
 }
 
-// toBool coerces a value to boolean, matching JS Boolean() coercion.
-func toBool(v interface{}) bool {
-	if v == nil {
-		return false
-	}
-	switch val := v.(type) {
-	case bool:
-		return val
-	case string:
-		return val != ""
-	case float64:
-		return val != 0
-	case int:
-		return val != 0
-	default:
-		return true
-	}
-}
+// toBool is defined in template.go
 
 // toString coerces a value to string for comparison purposes.
 func toString(v interface{}) string {

@@ -19,6 +19,7 @@ import { IfSwitchNode } from "./nodes/if-switch-node"
 import { IfPercentageNode } from "./nodes/if-percentage-node"
 import { MergeNode } from "./nodes/merge-node"
 import { IfExpressionNode } from "./nodes/if-expression-node"
+import { CompositionRefNode } from "./nodes/composition-ref-node"
 
 const nodeTypes = {
   start: StartNode,
@@ -29,6 +30,7 @@ const nodeTypes = {
   ifPercentage: IfPercentageNode,
   ifExpression: IfExpressionNode,
   merge: MergeNode,
+  compositionRef: CompositionRefNode,
 }
 
 const IF_NODE_TYPES = new Set(["ifBoolean", "ifSwitch", "ifPercentage", "ifExpression"])
@@ -41,6 +43,7 @@ const DEFAULT_NODE_DATA: Record<string, Record<string, unknown>> = {
   ifSwitch: { field: "fieldName", cases: ["case1", "case2"] },
   ifPercentage: { variants: [{ name: "A", weight: 50 }, { name: "B", weight: 50 }] },
   ifExpression: { expression: "" },
+  compositionRef: { compositionId: "", compositionName: "" },
   merge: { inputCount: 2 },
 }
 

@@ -46,9 +46,9 @@ export async function GET(
     .from(blocks)
     .where(eq(blocks.teamId, teamId))
 
-  const blockLookup: Record<string, { name: string; content: string; version: number }> = {}
+  const blockLookup: Record<string, { name: string; content: string; version: number; role: string | null }> = {}
   for (const b of teamBlocks) {
-    blockLookup[b.id] = { name: b.name, content: b.content, version: b.version }
+    blockLookup[b.id] = { name: b.name, content: b.content, version: b.version, role: b.role }
   }
 
   // Get all compositions for this team
@@ -77,6 +77,7 @@ export async function GET(
     version: deployedVersions.get(c.id) ?? c.version,
     graph: c.graph,
     contextSchema: c.contextSchema,
+    metadata: c.metadata,
   }))
 
   const result = { version: Date.now().toString(), environment: env, blocks: blockLookup, compositions: compositionConfigs }

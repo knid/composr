@@ -43,6 +43,7 @@ export const blocks = pgTable("blocks", {
   name: text("name").notNull(),
   description: text("description"),
   content: text("content").notNull().default(""),
+  role: text("role"), // "system" | "user" | "assistant" | null (null = inherits/default "system")
   version: integer("version").notNull().default(1),
   tags: jsonb("tags").notNull().default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -71,10 +72,13 @@ export const compositions = pgTable("compositions", {
     .references(() => teams.id),
   name: text("name").notNull(),
   description: text("description"),
+  folder: text("folder"), // organization folder
   graph: jsonb("graph")
     .notNull()
     .default({ nodes: [], edges: [] }),
   contextSchema: jsonb("context_schema").notNull().default([]),
+  outputSchema: jsonb("output_schema"), // expected output format
+  metadata: jsonb("metadata").notNull().default({}), // model/provider recommendations
   version: integer("version").notNull().default(1),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

@@ -3,7 +3,7 @@
 import { type DragEvent } from "react"
 import { cn } from "@/lib/utils"
 import {
-  FileText, GitBranch, ToggleLeft, List, Percent, Code2, Merge,
+  FileText, GitBranch, ToggleLeft, List, Percent, Code2, Merge, Layers,
 } from "lucide-react"
 
 interface PaletteItem {
@@ -49,6 +49,13 @@ const paletteItems: PaletteItem[] = [
     icon: <Code2 className="h-3.5 w-3.5" />,
     color: "text-primary bg-primary/10 border-primary/20",
     description: "Branch on expression",
+  },
+  {
+    type: "compositionRef",
+    label: "Comp Ref",
+    icon: <Layers className="h-3.5 w-3.5" />,
+    color: "text-primary bg-primary/10 border-primary/20",
+    description: "Include another composition",
   },
   {
     type: "merge",

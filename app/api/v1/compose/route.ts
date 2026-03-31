@@ -108,6 +108,7 @@ export async function POST(req: Request) {
   return NextResponse.json({
     id: assemblyId,
     text: result.text,
+    messages: result.messages,
     version: `v${activeVersion}`,
     variantId: result.variantId,
     tokenCount: result.tokenCount,

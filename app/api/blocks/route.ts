@@ -25,13 +25,14 @@ export async function POST(req: Request) {
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const body = await req.json()
-  const { name, description, content, tags } = body
+  const { name, description, content, tags, role } = body
 
   const [block] = await db.insert(blocks).values({
     teamId: orgId,
     name,
     description: description ?? "",
     content: content ?? "",
+    role: role ?? null,
     tags: tags ?? [],
   }).returning()
 

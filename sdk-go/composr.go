@@ -118,7 +118,7 @@ func (pk *Composr) Compose(name string, ctx ComposeContext) (*ComposeResult, err
 		pk.mu.RUnlock()
 	}
 
-	return compose(config, name, ctx)
+	return compose(config, name, ctx, nil)
 }
 
 // Track sends an LLM input/output pair to Composr for auto-scoring.

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-	"regexp"
 	"strings"
 	"time"
 )
@@ -12,12 +11,8 @@ import (
 // sdkVersion is the version of this Go SDK.
 const sdkVersion = "0.1.0"
 
-// variableRe matches {{word}} for template interpolation.
-var variableRe = regexp.MustCompile(`\{\{(\w+)\}\}`)
-
 // compose assembles a prompt locally from cached config.
-// This mirrors the TypeScript compose function exactly.
-func compose(config *SDKConfig, compositionName string, ctx ComposeContext) (*ComposeResult, error) {
+func compose(config *SDKConfig, compositionName string, ctx ComposeContext, opts *composeOptions) (*ComposeResult, error) {
 	// Find composition by name
 	var comp *CompositionConfig
 	for i := range config.Compositions {
@@ -68,7 +63,43 @@ func compose(config *SDKConfig, compositionName string, ctx ComposeContext) (*Co
 	}
 
 	var parts []string
+	var messages []Message
 	var resolvedBlocks []string
+	var errors []string
+
+	// Context schema validation
+	if comp.ContextSchema != nil {
+		for _, field := range comp.ContextSchema {
+			if m, ok := field.(map[string]interface{}); ok {
+				required, _ := m["required"].(bool)
+				name, _ := m["name"].(string)
+				if required && name != "" {
+					val := resolveContextPath(fullContext, name)
+					if val == nil {
+						errors = append(errors, fmt.Sprintf("Required context field missing: '%s'", name))
+					}
+				}
+			}
+		}
+	}
+
+	// Track roles for multi-message output
+	var currentRole string
+	var currentRoleContent []string
+	var variantID *string
+
+	flushRole := func() {
+		if len(currentRoleContent) > 0 && currentRole != "" {
+			messages = append(messages, Message{
+				Role:    currentRole,
+				Content: strings.Join(currentRoleContent, "\n\n"),
+			})
+			currentRoleContent = nil
+		}
+	}
+
+	// Visited compositions for cycle detection
+	visitedComps := opts.getVisitedCompositions()
 
 	// walk traverses the graph from a given node ID.
 	var walk func(nodeID string)
@@ -83,17 +114,71 @@ func compose(config *SDKConfig, compositionName string, ctx ComposeContext) (*Co
 			blockID, _ := node.Data["blockId"].(string)
 			block, exists := config.Blocks[blockID]
 			if exists {
-				content := block.Content
-				content = variableRe.ReplaceAllStringFunc(content, func(match string) string {
-					key := match[2 : len(match)-2] // strip {{ and }}
-					if val, ok := fullContext[key]; ok {
-						return fmt.Sprintf("%v", val)
-					}
-					return match
-				})
+				content := renderTemplate(block.Content, fullContext)
 				parts = append(parts, content)
 				resolvedBlocks = append(resolvedBlocks, block.Name)
+
+				// Multi-message support
+				blockRole := block.Role
+				if blockRole == "" {
+					blockRole = "system"
+				}
+				if currentRole != "" && currentRole != blockRole {
+					flushRole()
+				}
+				currentRole = blockRole
+				currentRoleContent = append(currentRoleContent, content)
 			}
+
+		case "compositionRef":
+			compID, _ := node.Data["compositionId"].(string)
+			if compID == "" {
+				return
+			}
+
+			// Find referenced composition
+			var refComp *CompositionConfig
+			for i := range config.Compositions {
+				if config.Compositions[i].ID == compID {
+					refComp = &config.Compositions[i]
+					break
+				}
+			}
+			if refComp == nil {
+				errors = append(errors, fmt.Sprintf("Composition not found for ref: %s", compID))
+				return
+			}
+
+			// Cycle detection
+			if visitedComps[compID] {
+				errors = append(errors, fmt.Sprintf("Circular composition reference detected: %s", compID))
+				return
+			}
+
+			childVisited := make(map[string]bool, len(visitedComps)+1)
+			for k, v := range visitedComps {
+				childVisited[k] = v
+			}
+			childVisited[compID] = true
+
+			childResult, err := compose(config, refComp.Name, ctx, &composeOptions{
+				visitedCompositions: childVisited,
+			})
+			if err == nil && childResult.Text != "" {
+				parts = append(parts, childResult.Text)
+				for _, msg := range childResult.Messages {
+					if currentRole != "" && currentRole != msg.Role {
+						flushRole()
+					}
+					currentRole = msg.Role
+					currentRoleContent = append(currentRoleContent, msg.Content)
+				}
+				resolvedBlocks = append(resolvedBlocks, childResult.Blocks...)
+				if childResult.VariantID != nil {
+					variantID = childResult.VariantID
+				}
+			}
+			return
 
 		case "ifBoolean":
 			field, _ := node.Data["field"].(string)
@@ -141,6 +226,8 @@ func compose(config *SDKConfig, compositionName string, ctx ComposeContext) (*Co
 			selectedIndex := selectVariant(seed, weights)
 			if selectedIndex < len(variants) {
 				selectedName := variants[selectedIndex].name
+				vID := selectedName
+				variantID = &vID
 				for _, e := range edgesBySource[node.ID] {
 					if e.SourceHandle == selectedName {
 						walk(e.Target)
@@ -178,6 +265,9 @@ func compose(config *SDKConfig, compositionName string, ctx ComposeContext) (*Co
 		}
 	}
 
+	// Flush remaining role content
+	flushRole()
+
 	text := strings.Join(parts, "\n\n")
 
 	// Generate assembly ID matching the TS pattern: asm_{timestamp}_{random6}
@@ -186,12 +276,26 @@ func compose(config *SDKConfig, compositionName string, ctx ComposeContext) (*Co
 	return &ComposeResult{
 		ID:              id,
 		Text:            text,
+		Messages:        messages,
 		Version:         fmt.Sprintf("v%d", comp.Version),
-		VariantID:       nil,
+		VariantID:       variantID,
 		TokenCount:      int(math.Round(float64(len(text)) / 4.0)),
 		Blocks:          resolvedBlocks,
 		CompositionName: compositionName,
+		Errors:          errors,
 	}, nil
+}
+
+// composeOptions holds internal options for recursive composition.
+type composeOptions struct {
+	visitedCompositions map[string]bool
+}
+
+func (o *composeOptions) getVisitedCompositions() map[string]bool {
+	if o == nil || o.visitedCompositions == nil {
+		return make(map[string]bool)
+	}
+	return o.visitedCompositions
 }
 
 // variant is a helper type for percentage-based routing.
@@ -250,7 +354,6 @@ func toInt(v interface{}) int {
 }
 
 // getSeed extracts a seed for percentage routing.
-// Priority: _req.userId > _req.sessionId > current timestamp.
 func getSeed(ctx map[string]interface{}) string {
 	if req, ok := ctx["_req"]; ok {
 		if m, ok := req.(map[string]interface{}); ok {

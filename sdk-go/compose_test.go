@@ -185,7 +185,7 @@ func ifExpressionComposition() CompositionConfig {
 
 func TestCompose_LinearGraph(t *testing.T) {
 	config := testConfig()
-	result, err := compose(config, "linear", ComposeContext{})
+	result, err := compose(config, "linear", ComposeContext{}, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -232,7 +232,7 @@ func TestCompose_VariableInterpolation(t *testing.T) {
 	config := testConfig()
 	result, err := compose(config, "interpolation", ComposeContext{
 		"projectType": "ecommerce",
-	})
+	}, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -248,7 +248,7 @@ func TestCompose_VariableInterpolation(t *testing.T) {
 
 func TestCompose_VariableInterpolation_MissingVariable(t *testing.T) {
 	config := testConfig()
-	result, err := compose(config, "interpolation", ComposeContext{})
+	result, err := compose(config, "interpolation", ComposeContext{}, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -263,7 +263,7 @@ func TestCompose_IfBoolean_TrueBranch(t *testing.T) {
 	config := testConfig()
 	result, err := compose(config, "if-boolean", ComposeContext{
 		"isFormal": true,
-	})
+	}, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -280,7 +280,7 @@ func TestCompose_IfBoolean_FalseBranch(t *testing.T) {
 	config := testConfig()
 	result, err := compose(config, "if-boolean", ComposeContext{
 		"isFormal": false,
-	})
+	}, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -309,7 +309,7 @@ func TestCompose_IfSwitch_EachCase(t *testing.T) {
 		t.Run("lang_"+tt.language, func(t *testing.T) {
 			result, err := compose(config, "if-switch", ComposeContext{
 				"language": tt.language,
-			})
+			}, nil)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -324,7 +324,7 @@ func TestCompose_IfSwitch_DefaultFallback(t *testing.T) {
 	config := testConfig()
 	result, err := compose(config, "if-switch", ComposeContext{
 		"language": "de", // not in cases
-	})
+	}, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -343,14 +343,14 @@ func TestCompose_IfPercentage_DeterministicForSameSeed(t *testing.T) {
 		},
 	}
 
-	first, err := compose(config, "if-percentage", ctx)
+	first, err := compose(config, "if-percentage", ctx, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	// Call 100 times with the same seed — must always produce the same result
 	for i := 0; i < 100; i++ {
-		result, err := compose(config, "if-percentage", ctx)
+		result, err := compose(config, "if-percentage", ctx, nil)
 		if err != nil {
 			t.Fatalf("unexpected error on iteration %d: %v", i, err)
 		}
@@ -372,7 +372,7 @@ func TestCompose_IfPercentage_ProducesBothVariants(t *testing.T) {
 				"userId": strings.Repeat("x", i) + "user",
 			},
 		}
-		result, err := compose(config, "if-percentage", ctx)
+		result, err := compose(config, "if-percentage", ctx, nil)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -399,7 +399,7 @@ func TestCompose_IfExpression(t *testing.T) {
 	// The expression is "_time.hour >= 18" — we cannot easily control time in
 	// compose(), but we can verify the result is one of the two expected blocks.
 	config := testConfig()
-	result, err := compose(config, "if-expression", ComposeContext{})
+	result, err := compose(config, "if-expression", ComposeContext{}, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -417,7 +417,7 @@ func TestCompose_IfExpression(t *testing.T) {
 
 func TestCompose_UnknownComposition(t *testing.T) {
 	config := testConfig()
-	_, err := compose(config, "nonexistent", ComposeContext{})
+	_, err := compose(config, "nonexistent", ComposeContext{}, nil)
 	if err == nil {
 		t.Fatal("expected error for unknown composition")
 	}
@@ -449,7 +449,7 @@ func TestCompose_EmptyGraph(t *testing.T) {
 		},
 	}
 
-	result, err := compose(config, "empty", ComposeContext{})
+	result, err := compose(config, "empty", ComposeContext{}, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -492,7 +492,7 @@ func TestCompose_TokenCount(t *testing.T) {
 		},
 	}
 
-	result, err := compose(config, "token-count", ComposeContext{})
+	result, err := compose(config, "token-count", ComposeContext{}, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -535,7 +535,7 @@ func TestCompose_MergeNode(t *testing.T) {
 		},
 	}
 
-	result, err := compose(config, "merge-test", ComposeContext{})
+	result, err := compose(config, "merge-test", ComposeContext{}, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

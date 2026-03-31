@@ -1,12 +1,14 @@
-import type { SDKConfig, ComposeContext, ComposeResult } from "./types"
+import type { SDKConfig, ComposeContext, ComposeResult, Message } from "./types"
 import { selectVariant } from "./hash"
 import { evaluateExpression } from "./expression-parser"
+import { renderTemplate } from "./template-engine"
 import { SDK_VERSION } from "./version"
 
 export function compose(
   config: SDKConfig,
   compositionName: string,
-  context: ComposeContext
+  context: ComposeContext,
+  options?: { sanitize?: boolean; _visitedCompositions?: Set<string> }
 ): ComposeResult {
   const comp = config.compositions.find((c) => c.name === compositionName)
   if (!comp) throw new Error(`Composition "${compositionName}" not found`)
@@ -34,12 +36,38 @@ export function compose(
     fullContext._req = context._request
   }
 
+  const renderCtx = options?.sanitize ? sanitizeContext(fullContext) : fullContext
+
+  // Validate context schema
+  const schemaErrors: string[] = []
+  if (comp.contextSchema) {
+    for (const field of comp.contextSchema) {
+      if (field.required) {
+        const parts = field.name.split(".")
+        let val: any = renderCtx
+        for (const p of parts) {
+          val = val?.[p]
+        }
+        if (val === undefined || val === null) {
+          schemaErrors.push(`Required context field missing: '${field.name}'`)
+        }
+      }
+    }
+  }
+
   const parts: string[] = []
+  const messages: Message[] = []
   const resolvedBlocks: string[] = []
   let variantId: string | null = null
 
-  function resolve(ctx: Record<string, any>, path: string): any {
-    return path.split(".").reduce((o: any, k: string) => o?.[k], ctx)
+  let currentRole: string | null = null
+  let currentRoleContent: string[] = []
+
+  function flushRole() {
+    if (currentRoleContent.length > 0 && currentRole) {
+      messages.push({ role: currentRole, content: currentRoleContent.join("\n\n") })
+      currentRoleContent = []
+    }
   }
 
   function walk(nodeId: string) {
@@ -49,22 +77,55 @@ export function compose(
     if (node.type === "block") {
       const block = config.blocks[node.data.blockId]
       if (block) {
-        let content = block.content
-        content = content.replace(/\{\{(\w+)\}\}/g, (_: string, key: string) =>
-          fullContext[key] !== undefined ? String(fullContext[key]) : `{{${key}}}`
-        )
+        const content = renderTemplate(block.content, renderCtx)
         parts.push(content)
         resolvedBlocks.push(block.name)
+
+        const blockRole = block.role || "system"
+        if (currentRole !== null && currentRole !== blockRole) {
+          flushRole()
+        }
+        currentRole = blockRole
+        currentRoleContent.push(content)
       }
+    } else if (node.type === "compositionRef") {
+      const compositionId = node.data.compositionId as string
+      const refComp = config.compositions.find((c) => c.id === compositionId)
+      if (!refComp) return
+
+      const visitedComps = options?._visitedCompositions ?? new Set<string>()
+      if (visitedComps.has(compositionId)) return // circular ref
+
+      const childVisited = new Set(visitedComps)
+      childVisited.add(compositionId)
+
+      const childResult = compose(config, refComp.name, context, {
+        sanitize: options?.sanitize,
+        _visitedCompositions: childVisited,
+      })
+
+      if (childResult.text) {
+        parts.push(childResult.text)
+        for (const msg of childResult.messages) {
+          if (currentRole !== null && currentRole !== msg.role) {
+            flushRole()
+          }
+          currentRole = msg.role
+          currentRoleContent.push(msg.content)
+        }
+      }
+      resolvedBlocks.push(...childResult.blocks)
+      if (childResult.variantId) variantId = childResult.variantId
+      return
     } else if (node.type === "ifBoolean") {
-      const value = Boolean(resolve(fullContext, node.data.field))
+      const value = Boolean(resolve(renderCtx, node.data.field))
       const handle = value ? "true" : "false"
       for (const e of (edgesBySource.get(node.id) ?? []).filter((e: any) => e.sourceHandle === handle)) {
         walk(e.target)
       }
       return
     } else if (node.type === "ifSwitch") {
-      const value = String(resolve(fullContext, node.data.field))
+      const value = String(resolve(renderCtx, node.data.field))
       const cases = node.data.cases ?? []
       const match = cases.includes(value) ? value : cases[cases.length - 1]
       for (const e of (edgesBySource.get(node.id) ?? []).filter((e: any) => e.sourceHandle === match)) {
@@ -73,7 +134,7 @@ export function compose(
       return
     } else if (node.type === "ifPercentage") {
       const variants = (node.data.variants as Array<{ name: string; weight: number }>) ?? []
-      const seed = fullContext._req?.userId ?? fullContext._req?.sessionId ?? String(Date.now())
+      const seed = renderCtx._req?.userId ?? renderCtx._req?.sessionId ?? String(Date.now())
       const weights = variants.map((v: { name: string; weight: number }) => v.weight)
       const selectedIndex = selectVariant(seed, weights)
       const selectedVariant = variants[selectedIndex]
@@ -86,7 +147,7 @@ export function compose(
       return
     } else if (node.type === "ifExpression") {
       const expression = (node.data.expression as string) ?? ""
-      const value = evaluateExpression(expression, fullContext)
+      const value = evaluateExpression(expression, renderCtx)
       const handle = value ? "true" : "false"
       for (const e of (edgesBySource.get(node.id) ?? []).filter((e: any) => e.sourceHandle === handle)) {
         walk(e.target)
@@ -102,14 +163,39 @@ export function compose(
   const start = nodes.find((n: any) => n.type === "start")
   if (start) walk(start.id)
 
+  // Flush remaining
+  flushRole()
+
   const text = parts.join("\n\n")
   return {
     id: `asm_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     text,
+    messages,
     version: `v${comp.version}`,
     variantId,
     tokenCount: Math.round(text.length / 4),
     blocks: resolvedBlocks,
     compositionName,
+    errors: schemaErrors,
   }
+}
+
+function resolve(ctx: Record<string, any>, path: string): any {
+  return path.split(".").reduce((o: any, k: string) => o?.[k], ctx)
+}
+
+function sanitizeContext(context: Record<string, any>): Record<string, any> {
+  const sanitized: Record<string, any> = {}
+  for (const [key, value] of Object.entries(context)) {
+    if (typeof value === "string") {
+      sanitized[key] = value
+        .replace(/\{\{/g, "{ {")
+        .replace(/\}\}/g, "} }")
+    } else if (value && typeof value === "object" && !Array.isArray(value)) {
+      sanitized[key] = sanitizeContext(value)
+    } else {
+      sanitized[key] = value
+    }
+  }
+  return sanitized
 }

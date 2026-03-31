@@ -5,7 +5,7 @@ import type { Node } from "@xyflow/react"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { X, Plus, Trash2, FileText, ToggleLeft, List, Percent, Code2, Merge, Play, Flag, Save } from "lucide-react"
+import { X, Plus, Trash2, FileText, ToggleLeft, List, Percent, Code2, Merge, Play, Flag, Save, Layers } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { MonacoBlockEditor } from "@/components/editor/monaco-block-editor"
 
@@ -14,17 +14,24 @@ interface BlockInfo {
   name: string
   content: string
   description?: string
+  role?: string | null
+}
+
+interface CompositionInfo {
+  id: string
+  name: string
 }
 
 interface PropertiesPanelProps {
   node: Node | null
   blocks: BlockInfo[]
+  compositions?: CompositionInfo[]
   onNodeDataChange: (nodeId: string, data: Record<string, unknown>) => void
   onClose: () => void
   onBlockSaved?: () => void
 }
 
-export function PropertiesPanel({ node, blocks, onNodeDataChange, onClose, onBlockSaved }: PropertiesPanelProps) {
+export function PropertiesPanel({ node, blocks, compositions, onNodeDataChange, onClose, onBlockSaved }: PropertiesPanelProps) {
   if (!node) return null
 
   return (
@@ -47,6 +54,7 @@ export function PropertiesPanel({ node, blocks, onNodeDataChange, onClose, onBlo
         <NodeProperties
           node={node}
           blocks={blocks}
+          compositions={compositions}
           onNodeDataChange={onNodeDataChange}
           onBlockSaved={onBlockSaved}
         />
@@ -63,6 +71,7 @@ function NodeTypeIcon({ type }: { type: string }) {
     case "ifSwitch": return <List className={cn(cls, "text-primary")} />
     case "ifPercentage": return <Percent className={cn(cls, "text-primary")} />
     case "ifExpression": return <Code2 className={cn(cls, "text-primary")} />
+    case "compositionRef": return <Layers className={cn(cls, "text-primary")} />
     case "merge": return <Merge className={cn(cls, "text-primary")} />
     case "start": return <Play className={cn(cls, "text-primary")} />
     case "promptOutput": return <Flag className={cn(cls, "text-success")} />
@@ -77,6 +86,7 @@ function nodeTypeLabel(type: string): string {
     case "ifSwitch": return "IF Switch"
     case "ifPercentage": return "IF Percentage"
     case "ifExpression": return "IF Expression"
+    case "compositionRef": return "Composition Ref"
     case "merge": return "Merge"
     case "start": return "Start"
     case "promptOutput": return "Output"
@@ -87,11 +97,13 @@ function nodeTypeLabel(type: string): string {
 function NodeProperties({
   node,
   blocks,
+  compositions,
   onNodeDataChange,
   onBlockSaved,
 }: {
   node: Node
   blocks: BlockInfo[]
+  compositions?: CompositionInfo[]
   onNodeDataChange: (nodeId: string, data: Record<string, unknown>) => void
   onBlockSaved?: () => void
 }) {
@@ -101,6 +113,8 @@ function NodeProperties({
   switch (type) {
     case "block":
       return <BlockProperties nodeId={node.id} data={data} blocks={blocks} onChange={onNodeDataChange} onBlockSaved={onBlockSaved} />
+    case "compositionRef":
+      return <CompositionRefProperties nodeId={node.id} data={data} compositions={compositions ?? []} onChange={onNodeDataChange} />
     case "ifBoolean":
       return <IfBooleanProperties nodeId={node.id} data={data} onChange={onNodeDataChange} />
     case "ifSwitch":
@@ -198,6 +212,29 @@ function BlockProperties({
               {b.name}
             </option>
           ))}
+        </select>
+      </FieldLabel>
+
+      <FieldLabel label="Role">
+        <select
+          value={selectedBlock?.role ?? "system"}
+          onChange={async (e) => {
+            const newRole = e.target.value === "system" ? null : e.target.value
+            if (blockId) {
+              await fetch(`/api/blocks/${blockId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ role: newRole }),
+              })
+              onChange(nodeId, { role: newRole })
+              onBlockSaved?.()
+            }
+          }}
+          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none focus:border-ring focus:ring-1 focus:ring-ring/50"
+        >
+          <option value="system">system</option>
+          <option value="user">user</option>
+          <option value="assistant">assistant</option>
         </select>
       </FieldLabel>
 
@@ -566,6 +603,49 @@ function MergeProperties({
       </FieldLabel>
       <p className="text-[10px] text-muted-foreground">
         Number of input branches to merge (2-10).
+      </p>
+    </div>
+  )
+}
+
+/* ─── Composition Ref Properties ─── */
+function CompositionRefProperties({
+  nodeId,
+  data,
+  compositions,
+  onChange,
+}: {
+  nodeId: string
+  data: Record<string, unknown>
+  compositions: CompositionInfo[]
+  onChange: (nodeId: string, data: Record<string, unknown>) => void
+}) {
+  const compositionId = data.compositionId as string ?? ""
+
+  return (
+    <div className="space-y-3">
+      <FieldLabel label="Composition">
+        <select
+          value={compositionId}
+          onChange={(e) => {
+            const chosen = compositions.find((c) => c.id === e.target.value)
+            onChange(nodeId, {
+              compositionId: e.target.value,
+              compositionName: chosen?.name ?? "",
+            })
+          }}
+          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none focus:border-ring focus:ring-1 focus:ring-ring/50"
+        >
+          <option value="">Select a composition...</option>
+          {compositions.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </FieldLabel>
+      <p className="text-[10px] text-muted-foreground leading-relaxed">
+        The referenced composition will be assembled inline, inheriting the same context. Circular references are detected and prevented.
       </p>
     </div>
   )
