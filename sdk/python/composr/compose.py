@@ -1,10 +1,11 @@
 from __future__ import annotations
+import json
 import re
 import time
 import random
 from typing import Any
 
-from composr.types import ComposeResult, SDKConfig
+from composr.types import ComposeResult, ModelConfig, SDKConfig, ToolDefinition
 from composr.hash import select_variant
 from composr.expression_parser import evaluate_expression
 
@@ -43,6 +44,7 @@ def compose(config: SDKConfig, composition_name: str, context: dict[str, Any] | 
 
     parts: list[str] = []
     resolved_blocks: list[str] = []
+    tools: list[ToolDefinition] = []
     variant_id: str | None = None
 
     def resolve(ctx: dict[str, Any], path: str) -> Any:
@@ -72,6 +74,22 @@ def compose(config: SDKConfig, composition_name: str, context: dict[str, Any] | 
                 )
                 parts.append(content)
                 resolved_blocks.append(block["name"])
+
+        elif node_type == "tool":
+            block_id = node["data"].get("blockId", "")
+            block = config.blocks.get(block_id)
+            if block:
+                try:
+                    input_schema = json.loads(block["content"])
+                    tools.append(ToolDefinition(
+                        name=block["name"],
+                        description=block.get("description", ""),
+                        input_schema=input_schema,
+                    ))
+                except (json.JSONDecodeError, ValueError):
+                    pass
+                resolved_blocks.append(block["name"])
+            # Falls through to edge-following at bottom
 
         elif node_type == "ifBoolean":
             value = bool(resolve(full_context, node["data"]["field"]))
@@ -128,6 +146,23 @@ def compose(config: SDKConfig, composition_name: str, context: dict[str, Any] | 
         walk(start["id"])
 
     text = "\n\n".join(parts)
+
+    # Extract model config from composition metadata
+    model: str | None = None
+    model_cfg: ModelConfig | None = None
+    metadata = comp.get("metadata") or {}
+    model_config_raw = metadata.get("modelConfig") or {}
+    env_config = model_config_raw.get(config.environment) or {}
+    if env_config:
+        model = env_config.get("model") or None
+        if model:
+            model_cfg = ModelConfig(
+                temperature=env_config.get("temperature"),
+                max_tokens=env_config.get("maxTokens"),
+                top_p=env_config.get("topP"),
+                stop_sequences=env_config.get("stopSequences"),
+            )
+
     rand_suffix = hex(random.randint(0, 0xFFFFFF))[2:]
     return ComposeResult(
         id=f"asm_{int(time.time())}_{rand_suffix}",
@@ -137,4 +172,7 @@ def compose(config: SDKConfig, composition_name: str, context: dict[str, Any] | 
         token_count=len(text) // 4,
         blocks=resolved_blocks,
         composition_name=composition_name,
+        model=model,
+        config=model_cfg,
+        tools=tools,
     )
