@@ -16,7 +16,7 @@ const linearGraph = {
     { id: "start", type: "start", data: {} },
     { id: "n1", type: "block", data: { blockId: "b-role" } },
     { id: "n2", type: "block", data: { blockId: "b-design" } },
-    { id: "output", type: "output", data: {} },
+    { id: "output", type: "promptOutput", data: {} },
   ],
   edges: [
     { id: "e1", source: "start", target: "n1" },
@@ -33,7 +33,7 @@ const booleanGraph = {
     { id: "if-auth", type: "ifBoolean", data: { field: "hasAuth" } },
     { id: "n-auth", type: "block", data: { blockId: "b-auth" } },
     { id: "merge", type: "merge", data: {} },
-    { id: "output", type: "output", data: {} },
+    { id: "output", type: "promptOutput", data: {} },
   ],
   edges: [
     { id: "e1", source: "start", target: "n-role" },
@@ -54,7 +54,7 @@ const switchGraph = {
     { id: "n-web", type: "block", data: { blockId: "b-web" } },
     { id: "n-ecom", type: "block", data: { blockId: "b-ecom" } },
     { id: "merge", type: "merge", data: {} },
-    { id: "output", type: "output", data: {} },
+    { id: "output", type: "promptOutput", data: {} },
   ],
   edges: [
     { id: "e1", source: "start", target: "if-type" },
@@ -142,7 +142,7 @@ describe("assembleGraph", () => {
         },
         { id: "n-control", type: "block", data: { blockId: "b-role" } },
         { id: "n-treatment", type: "block", data: { blockId: "b-auth" } },
-        { id: "output", type: "output", data: {} },
+        { id: "output", type: "promptOutput", data: {} },
       ],
       edges: [
         { id: "e1", source: "start", target: "if-pct" },
@@ -173,7 +173,7 @@ describe("assembleGraph", () => {
       { id: "start", type: "start", data: {} },
       { id: "if-expr", type: "ifExpression", data: { expression: '_time.hour >= 18 && projectType == "mobile"' } },
       { id: "n-evening", type: "block", data: { blockId: "b-mobile" } },
-      { id: "output", type: "output", data: {} },
+      { id: "output", type: "promptOutput", data: {} },
     ]
     const edges = [
       { id: "e1", source: "start", target: "if-expr" },
@@ -192,7 +192,7 @@ describe("assembleGraph", () => {
       { id: "start", type: "start", data: {} },
       { id: "if", type: "ifBoolean", data: { field: "_req.authenticated" } },
       { id: "n-auth", type: "block", data: { blockId: "b-auth" } },
-      { id: "output", type: "output", data: {} },
+      { id: "output", type: "promptOutput", data: {} },
     ]
     const edges = [
       { id: "e1", source: "start", target: "if" },

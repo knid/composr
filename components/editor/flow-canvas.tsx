@@ -20,7 +20,7 @@ import { IfExpressionNode } from "./nodes/if-expression-node"
 
 const nodeTypes = {
   start: StartNode,
-  output: OutputNode,
+  promptOutput: OutputNode,
   block: BlockNode,
   ifBoolean: IfBooleanNode,
   ifSwitch: IfSwitchNode,
@@ -56,7 +56,9 @@ interface FlowCanvasProps {
 const FlowCanvasInner = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
   function FlowCanvasInner({ initialNodes, initialEdges, onGraphChange, onNodeSelect }, ref) {
     const { screenToFlowPosition } = useReactFlow()
-    const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
+    const [nodes, setNodes, onNodesChange] = useNodesState(
+      initialNodes.map((n) => n.type === "output" ? { ...n, type: "promptOutput" } : n)
+    )
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
 
     const idCounter = useRef(
@@ -114,7 +116,7 @@ const FlowCanvasInner = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
         if (targetNode?.type === "start") return false
         // No connecting from Output
         const sourceNode = nodes.find((n) => n.id === connection.source)
-        if (sourceNode?.type === "output") return false
+        if (sourceNode?.type === "promptOutput") return false
         return true
       },
       [nodes]

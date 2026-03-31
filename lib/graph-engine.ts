@@ -123,7 +123,7 @@ export function assembleGraph(
       case "merge":
         break
 
-      case "output":
+      case "promptOutput":
         return
     }
 

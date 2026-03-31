@@ -62,7 +62,7 @@ function NodeTypeIcon({ type }: { type: string }) {
     case "ifExpression": return <Code2 className={cn(cls, "text-primary")} />
     case "merge": return <Merge className={cn(cls, "text-primary")} />
     case "start": return <Play className={cn(cls, "text-success")} />
-    case "output": return <Flag className={cn(cls, "text-destructive")} />
+    case "promptOutput": return <Flag className={cn(cls, "text-destructive")} />
     default: return null
   }
 }
@@ -76,7 +76,7 @@ function nodeTypeLabel(type: string): string {
     case "ifExpression": return "IF Expression"
     case "merge": return "Merge"
     case "start": return "Start"
-    case "output": return "Output"
+    case "promptOutput": return "Output"
     default: return type
   }
 }
@@ -113,7 +113,7 @@ function NodeProperties({
           <p className="text-xs text-muted-foreground">No configuration needed</p>
           <p className="text-[10px] text-muted-foreground/60 mt-1">
             {type === "start" ? "Context is injected at runtime" :
-             type === "output" ? "Collects the assembled prompt" :
+             type === "promptOutput" ? "Collects the assembled prompt" :
              type === "merge" ? "Joins multiple branches" : ""}
           </p>
         </div>

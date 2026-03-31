@@ -8,7 +8,7 @@ import { logAudit } from "@/lib/audit"
 const DEFAULT_GRAPH = {
   nodes: [
     { id: "start", type: "start", position: { x: 50, y: 200 }, data: {} },
-    { id: "output", type: "output", position: { x: 600, y: 200 }, data: {} },
+    { id: "output", type: "promptOutput", position: { x: 600, y: 200 }, data: {} },
   ],
   edges: [{ id: "start-output", source: "start", target: "output" }],
 }

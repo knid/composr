@@ -26,7 +26,7 @@ const mockConfig: SDKConfig = {
           { id: "if-auth", type: "ifBoolean", position: { x: 300, y: 0 }, data: { field: "hasAuth" } },
           { id: "n-auth", type: "block", position: { x: 400, y: 0 }, data: { blockId: "block-auth", label: "auth" } },
           { id: "merge-1", type: "merge", position: { x: 500, y: 0 }, data: {} },
-          { id: "output", type: "output", position: { x: 600, y: 0 }, data: {} },
+          { id: "output", type: "promptOutput", position: { x: 600, y: 0 }, data: {} },
         ],
         edges: [
           { id: "e1", source: "start", target: "n-role" },
