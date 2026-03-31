@@ -21,10 +21,26 @@ export interface Message {
   content: string
 }
 
+export interface ModelConfig {
+  temperature?: number
+  maxTokens?: number
+  topP?: number
+  stopSequences?: string[]
+}
+
+export interface ToolDefinition {
+  name: string
+  description: string
+  input_schema: Record<string, any>
+}
+
 export interface ComposeResult {
   id: string
   text: string
   messages: Message[]
+  model: string | null
+  config: ModelConfig | null
+  tools: ToolDefinition[]
   version: string
   variantId: string | null
   tokenCount: number
@@ -57,7 +73,7 @@ export interface ContextSchemaField {
 export interface SDKConfig {
   version: string
   environment: string
-  blocks: Record<string, { name: string; content: string; version: number; role?: string | null }>
+  blocks: Record<string, { name: string; content: string; version: number; role?: string | null; kind?: string; description?: string }>
   compositions: Array<{
     id: string
     name: string

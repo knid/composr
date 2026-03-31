@@ -1,4 +1,4 @@
-import type { SDKConfig, ComposeContext, ComposeResult, Message } from "./types"
+import type { SDKConfig, ComposeContext, ComposeResult, Message, ToolDefinition, ModelConfig } from "./types"
 import { selectVariant } from "./hash"
 import { evaluateExpression } from "./expression-parser"
 import { renderTemplate } from "./template-engine"
@@ -56,6 +56,7 @@ export function compose(
   }
 
   const parts: string[] = []
+  const tools: ToolDefinition[] = []
   const messages: Message[] = []
   const resolvedBlocks: string[] = []
   let variantId: string | null = null
@@ -88,6 +89,16 @@ export function compose(
         currentRole = blockRole
         currentRoleContent.push(content)
       }
+    } else if (node.type === "tool") {
+      const block = config.blocks[node.data.blockId]
+      if (block) {
+        try {
+          const inputSchema = JSON.parse(block.content)
+          tools.push({ name: block.name, description: block.description ?? "", input_schema: inputSchema })
+        } catch {}
+        resolvedBlocks.push(block.name)
+      }
+      // Falls through to edge-following at bottom
     } else if (node.type === "compositionRef") {
       const compositionId = node.data.compositionId as string
       const refComp = config.compositions.find((c) => c.id === compositionId)
@@ -167,10 +178,25 @@ export function compose(
   flushRole()
 
   const text = parts.join("\n\n")
+
+  const modelConfig = comp.metadata?.modelConfig?.[config.environment] ?? null
+  const model: string | null = modelConfig?.model ?? null
+  let configResult: ModelConfig | null = null
+  if (model && modelConfig) {
+    configResult = {} as ModelConfig
+    if (modelConfig.temperature !== undefined) configResult.temperature = modelConfig.temperature
+    if (modelConfig.maxTokens !== undefined) configResult.maxTokens = modelConfig.maxTokens
+    if (modelConfig.topP !== undefined) configResult.topP = modelConfig.topP
+    if (modelConfig.stopSequences !== undefined) configResult.stopSequences = modelConfig.stopSequences
+  }
+
   return {
     id: `asm_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     text,
     messages,
+    model,
+    config: configResult,
+    tools,
     version: `v${comp.version}`,
     variantId,
     tokenCount: Math.round(text.length / 4),
