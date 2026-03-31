@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Key, Copy, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { ProviderKeysSection } from "@/components/settings/provider-keys"
+import { WebhooksSection } from "@/components/settings/webhooks"
 
 export default function SettingsPage() {
   const [keys, setKeys] = useState<any[]>([])
@@ -90,6 +91,8 @@ export default function SettingsPage() {
       </section>
 
       <ProviderKeysSection />
+
+      <WebhooksSection />
 
       <section>
         <h2 className="text-sm font-semibold mb-3">SDK Quick Start</h2>
