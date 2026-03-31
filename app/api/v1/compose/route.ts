@@ -62,9 +62,9 @@ export async function POST(req: Request) {
     .from(blocks)
     .where(eq(blocks.teamId, apiKey.teamId))
 
-  const blockLookup: Record<string, { name: string; content: string }> = {}
+  const blockLookup: Record<string, { name: string; content: string; kind: string; description: string | null }> = {}
   for (const b of teamBlocks) {
-    blockLookup[b.id] = { name: b.name, content: b.content }
+    blockLookup[b.id] = { name: b.name, content: b.content, kind: b.kind, description: b.description }
   }
 
   // Auto-inject metadata
@@ -90,6 +90,16 @@ export async function POST(req: Request) {
   const graph = comp.graph as { nodes: any[]; edges: any[] }
   const result = assembleGraph(graph.nodes, graph.edges, blockLookup, fullContext)
 
+  const metadata = comp.metadata as Record<string, any> | null
+  const envModelConfig = metadata?.modelConfig?.[apiKey.environment] ?? null
+  const model = envModelConfig?.model ?? null
+  const config = model ? {
+    temperature: envModelConfig.temperature,
+    maxTokens: envModelConfig.maxTokens,
+    topP: envModelConfig.topP,
+    stopSequences: envModelConfig.stopSequences,
+  } : null
+
   const assemblyId = `asm_${crypto.randomUUID()}`
 
   // Write assembly log
@@ -109,6 +119,9 @@ export async function POST(req: Request) {
     id: assemblyId,
     text: result.text,
     messages: result.messages,
+    model,
+    config,
+    tools: result.tools,
     version: `v${activeVersion}`,
     variantId: result.variantId,
     tokenCount: result.tokenCount,
