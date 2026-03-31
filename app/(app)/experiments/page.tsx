@@ -112,12 +112,12 @@ export default async function ExperimentsPage() {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {experiments.map((exp) => (
-            <ExperimentCard key={exp.compositionId} {...exp} />
-          ))}
-        </div>
-        {experiments.length > 0 && (
+        <>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {experiments.map((exp) => (
+              <ExperimentCard key={exp.compositionId} {...exp} />
+            ))}
+          </div>
           <div className="mt-6">
             <BarChartCard
               title="Mean Score by Variant"
@@ -130,7 +130,7 @@ export default async function ExperimentsPage() {
               color="#f59e0b"
             />
           </div>
-        )}
+        </>
       )}
     </div>
   )
