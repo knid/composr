@@ -20,7 +20,7 @@ export function LineChartCard({ title, data, color = "#3b82f6", valueFormatter }
           <LineChart data={data}>
             <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#71717a" }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fontSize: 10, fill: "#71717a" }} axisLine={false} tickLine={false} width={40} tickFormatter={valueFormatter} />
-            <Tooltip contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: "8px", fontSize: "11px", color: "#e4e4e7" }} formatter={(value: number) => [valueFormatter ? valueFormatter(value) : value]} />
+            <Tooltip contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: "8px", fontSize: "11px", color: "#e4e4e7" }} formatter={(value: any) => [valueFormatter ? valueFormatter(value) : value]} />
             <Line type="monotone" dataKey="value" stroke={color} strokeWidth={2} dot={false} />
           </LineChart>
         </ResponsiveContainer>

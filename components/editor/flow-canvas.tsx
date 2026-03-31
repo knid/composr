@@ -484,10 +484,10 @@ const FlowCanvasInner = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
           onNodeDragStop={handleNodeDragStop}
           onNodesDelete={handleNodesDelete}
           onEdgesDelete={handleEdgesDelete}
-          isValidConnection={isValidConnection}
+          isValidConnection={isValidConnection as any}
           nodeTypes={nodeTypes}
           deleteKeyCode={["Delete", "Backspace"]}
-          connectionMode="loose"
+          connectionMode={"loose" as any}
           fitView
           proOptions={{ hideAttribution: true }}
           className="bg-background"

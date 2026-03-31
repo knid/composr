@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { cn } from "@/lib/utils"
-import { Plus, Search, Trash2 } from "lucide-react"
+import { AlertTriangle, Plus, Search, Trash2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { MonacoBlockEditor } from "@/components/editor/monaco-block-editor"
@@ -43,6 +43,9 @@ export function BlockList({ initialBlocks, usageMap }: { initialBlocks: Block[];
   const [versions, setVersions] = useState<Array<{ version: number; content: string; createdAt: string }>>([])
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null)
   const [loadingVersions, setLoadingVersions] = useState(false)
+
+  const [blockUsage, setBlockUsage] = useState<Array<{ compositionId: string; compositionName: string; nodeCount: number; environments: string[] }>>([])
+  const [loadingUsage, setLoadingUsage] = useState(false)
 
   const allTags = Array.from(new Set(blocks.flatMap((b) => b.tags ?? [])))
 
@@ -89,6 +92,13 @@ export function BlockList({ initialBlocks, usageMap }: { initialBlocks: Block[];
       .then((data) => { if (Array.isArray(data)) setVersions(data) })
       .catch(() => {})
       .finally(() => setLoadingVersions(false))
+    setBlockUsage([])
+    setLoadingUsage(true)
+    fetch(`/api/blocks/${block.id}/usage`)
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setBlockUsage(data) })
+      .catch(() => {})
+      .finally(() => setLoadingUsage(false))
   }
 
   async function saveBlock() {
@@ -210,6 +220,57 @@ export function BlockList({ initialBlocks, usageMap }: { initialBlocks: Block[];
             <DialogTitle>Edit Block</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
+            {/* Used in (impact analysis) */}
+            {blockUsage.length > 0 && (
+              <div className={cn(
+                "rounded-lg border p-3",
+                blockUsage.some(u => u.environments.includes("prod"))
+                  ? "border-amber-500/30 bg-amber-500/5"
+                  : "border-border bg-card"
+              )}>
+                <div className="flex items-center gap-1.5 mb-2">
+                  {blockUsage.some(u => u.environments.includes("prod")) && (
+                    <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+                  )}
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Used in {blockUsage.length} composition{blockUsage.length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  {blockUsage.map((u) => (
+                    <div key={u.compositionId} className="flex items-center justify-between">
+                      <a
+                        href={`/compositions/${u.compositionId}`}
+                        className="text-xs text-primary hover:underline"
+                        onClick={(e) => { e.stopPropagation() }}
+                      >
+                        {u.compositionName}
+                      </a>
+                      <div className="flex gap-1">
+                        {u.environments.map((env) => (
+                          <span
+                            key={env}
+                            className={cn(
+                              "rounded px-1.5 py-0.5 text-[9px] font-medium",
+                              env === "prod" ? "bg-red-500/10 text-red-500" :
+                              env === "staging" ? "bg-yellow-500/10 text-yellow-500" :
+                              "bg-green-500/10 text-green-500"
+                            )}
+                          >
+                            {env}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {blockUsage.some(u => u.environments.includes("prod")) && (
+                  <p className="text-[10px] text-amber-500 mt-2">
+                    Changes will take effect on next SDK sync
+                  </p>
+                )}
+              </div>
+            )}
             <div>
               <label className="text-xs font-medium text-muted-foreground">Name</label>
               <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
