@@ -182,3 +182,18 @@ export const usageRecords = pgTable("usage_records", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 })
+
+// pipelines
+export const pipelines = pgTable("pipelines", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  teamId: text("team_id")
+    .notNull()
+    .references(() => teams.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  graph: jsonb("graph")
+    .notNull()
+    .default({ nodes: [], edges: [] }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+})
