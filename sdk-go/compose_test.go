@@ -502,6 +502,109 @@ func TestCompose_TokenCount(t *testing.T) {
 	}
 }
 
+func TestCompose_ModelConfigAndTools(t *testing.T) {
+	config := &SDKConfig{
+		Version:     "1",
+		Environment: "prod",
+		Blocks: map[string]BlockConfig{
+			"blk-sys": {
+				Name:    "system-block",
+				Content: "You are a helpful assistant.",
+				Version: 1,
+			},
+			"blk-tool": {
+				Name:        "get_weather",
+				Description: "Get current weather for a location",
+				Kind:        "tool",
+				Content:     `{"type":"object","properties":{"location":{"type":"string","description":"City name"}},"required":["location"]}`,
+				Version:     1,
+			},
+		},
+		Compositions: []CompositionConfig{
+			{
+				ID:      "comp-tools",
+				Name:    "with-tools",
+				Version: 1,
+				Metadata: map[string]interface{}{
+					"modelConfig": map[string]interface{}{
+						"prod": map[string]interface{}{
+							"model":       "anthropic/claude-sonnet-4-6",
+							"temperature": 0.7,
+							"maxTokens":   float64(1024),
+							"topP":        0.9,
+						},
+					},
+				},
+				Graph: Graph{
+					Nodes: []GraphNode{
+						{ID: "start-1", Type: "start", Data: map[string]interface{}{}},
+						{ID: "block-1", Type: "block", Data: map[string]interface{}{"blockId": "blk-sys"}},
+						{ID: "tool-1", Type: "tool", Data: map[string]interface{}{"blockId": "blk-tool"}},
+						{ID: "output-1", Type: "output", Data: map[string]interface{}{}},
+					},
+					Edges: []GraphEdge{
+						{ID: "e1", Source: "start-1", Target: "block-1"},
+						{ID: "e2", Source: "block-1", Target: "tool-1"},
+						{ID: "e3", Source: "tool-1", Target: "output-1"},
+					},
+				},
+			},
+		},
+	}
+
+	result, err := compose(config, "with-tools", ComposeContext{}, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Verify model is populated
+	if result.Model != "anthropic/claude-sonnet-4-6" {
+		t.Errorf("expected model 'anthropic/claude-sonnet-4-6', got %q", result.Model)
+	}
+
+	// Verify config is populated
+	if result.Config == nil {
+		t.Fatal("expected config to be non-nil")
+	}
+	if result.Config.Temperature == nil || *result.Config.Temperature != 0.7 {
+		t.Errorf("expected temperature 0.7, got %v", result.Config.Temperature)
+	}
+	if result.Config.MaxTokens == nil || *result.Config.MaxTokens != 1024 {
+		t.Errorf("expected maxTokens 1024, got %v", result.Config.MaxTokens)
+	}
+	if result.Config.TopP == nil || *result.Config.TopP != 0.9 {
+		t.Errorf("expected topP 0.9, got %v", result.Config.TopP)
+	}
+
+	// Verify tools are populated
+	if len(result.Tools) != 1 {
+		t.Fatalf("expected 1 tool, got %d", len(result.Tools))
+	}
+	tool := result.Tools[0]
+	if tool.Name != "get_weather" {
+		t.Errorf("expected tool name 'get_weather', got %q", tool.Name)
+	}
+	if tool.Description != "Get current weather for a location" {
+		t.Errorf("unexpected tool description: %q", tool.Description)
+	}
+	if tool.InputSchema == nil {
+		t.Error("expected tool input schema to be non-nil")
+	}
+	if schemaType, ok := tool.InputSchema["type"].(string); !ok || schemaType != "object" {
+		t.Errorf("expected input_schema.type = 'object', got %v", tool.InputSchema["type"])
+	}
+
+	// Verify text still contains the non-tool block content
+	if !strings.Contains(result.Text, "You are a helpful assistant.") {
+		t.Errorf("expected text to contain system block, got %q", result.Text)
+	}
+
+	// Verify blocks includes both
+	if len(result.Blocks) != 2 {
+		t.Errorf("expected 2 resolved blocks, got %d: %v", len(result.Blocks), result.Blocks)
+	}
+}
+
 func TestCompose_MergeNode(t *testing.T) {
 	// Test that merge nodes act as pass-through
 	config := &SDKConfig{

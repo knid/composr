@@ -280,3 +280,62 @@ describe("assembleGraph", () => {
     expect(result.tokenCount).toBe(0)
   })
 })
+
+const toolBlocks = {
+  ...blocks,
+  "b-weather": { name: "get_weather", content: '{"type":"object","properties":{"location":{"type":"string"}},"required":["location"]}', kind: "tool" as const, description: "Get current weather" },
+  "b-search": { name: "search_products", content: '{"type":"object","properties":{"query":{"type":"string"}},"required":["query"]}', kind: "tool" as const, description: "Search for products" },
+}
+
+// Graph with tool nodes: Start → role → tool(weather) → Output
+const toolGraph = {
+  nodes: [
+    { id: "start", type: "start", data: {} },
+    { id: "n1", type: "block", data: { blockId: "b-role" } },
+    { id: "t1", type: "tool", data: { blockId: "b-weather" } },
+    { id: "output", type: "promptOutput", data: {} },
+  ],
+  edges: [
+    { id: "e1", source: "start", target: "n1" },
+    { id: "e2", source: "n1", target: "t1" },
+    { id: "e3", source: "t1", target: "output" },
+  ],
+}
+
+describe("tool block assembly", () => {
+  it("collects tool blocks into tools[] and excludes from text", () => {
+    const result = assembleGraph(toolGraph.nodes, toolGraph.edges, toolBlocks, {})
+    expect(result.tools).toHaveLength(1)
+    expect(result.tools[0].name).toBe("get_weather")
+    expect(result.tools[0].input_schema).toEqual({
+      type: "object",
+      properties: { location: { type: "string" } },
+      required: ["location"],
+    })
+    expect(result.text).not.toContain("get_weather")
+    expect(result.text).toContain("senior engineer")
+  })
+
+  it("conditionally includes tools via IF gates", () => {
+    const condToolGraph = {
+      nodes: [
+        { id: "start", type: "start", data: {} },
+        { id: "if", type: "ifBoolean", data: { field: "hasWeather" } },
+        { id: "t1", type: "tool", data: { blockId: "b-weather" } },
+        { id: "output", type: "promptOutput", data: {} },
+      ],
+      edges: [
+        { id: "e1", source: "start", target: "if" },
+        { id: "e2", source: "if", target: "t1", sourceHandle: "true" },
+        { id: "e3", source: "if", target: "output", sourceHandle: "false" },
+        { id: "e4", source: "t1", target: "output" },
+      ],
+    }
+
+    const withWeather = assembleGraph(condToolGraph.nodes, condToolGraph.edges, toolBlocks, { hasWeather: true })
+    expect(withWeather.tools).toHaveLength(1)
+
+    const withoutWeather = assembleGraph(condToolGraph.nodes, condToolGraph.edges, toolBlocks, { hasWeather: false })
+    expect(withoutWeather.tools).toHaveLength(0)
+  })
+})

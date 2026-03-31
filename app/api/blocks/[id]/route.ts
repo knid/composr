@@ -27,7 +27,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const { id } = await params
 
   const body = await req.json()
-  const { name, description, content, tags, role } = body
+  const { name, description, content, tags, role, kind } = body
 
   const [existing] = await db
     .select()
@@ -45,6 +45,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       description: description ?? existing.description,
       content: content ?? existing.content,
       role: role !== undefined ? role : existing.role,
+      kind: kind ?? existing.kind,
       tags: tags ?? existing.tags,
       version: content !== undefined ? newVersion : existing.version,
       updatedAt: new Date(),

@@ -5,7 +5,7 @@ import type { Node } from "@xyflow/react"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { X, Plus, Trash2, FileText, ToggleLeft, List, Percent, Code2, Merge, Play, Flag, Save, Layers } from "lucide-react"
+import { X, Plus, Trash2, FileText, ToggleLeft, List, Percent, Code2, Merge, Play, Flag, Save, Layers, Wrench } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { MonacoBlockEditor } from "@/components/editor/monaco-block-editor"
 
@@ -72,6 +72,7 @@ function NodeTypeIcon({ type }: { type: string }) {
     case "ifPercentage": return <Percent className={cn(cls, "text-primary")} />
     case "ifExpression": return <Code2 className={cn(cls, "text-primary")} />
     case "compositionRef": return <Layers className={cn(cls, "text-primary")} />
+    case "tool": return <Wrench className={cn(cls, "text-amber-400")} />
     case "merge": return <Merge className={cn(cls, "text-primary")} />
     case "start": return <Play className={cn(cls, "text-primary")} />
     case "promptOutput": return <Flag className={cn(cls, "text-success")} />
@@ -87,6 +88,7 @@ function nodeTypeLabel(type: string): string {
     case "ifPercentage": return "IF Percentage"
     case "ifExpression": return "IF Expression"
     case "compositionRef": return "Composition Ref"
+    case "tool": return "Tool"
     case "merge": return "Merge"
     case "start": return "Start"
     case "promptOutput": return "Output"
@@ -113,6 +115,8 @@ function NodeProperties({
   switch (type) {
     case "block":
       return <BlockProperties nodeId={node.id} data={data} blocks={blocks} onChange={onNodeDataChange} onBlockSaved={onBlockSaved} />
+    case "tool":
+      return <ToolProperties nodeId={node.id} data={data} blocks={blocks.filter(b => (b as any).kind === "tool")} onChange={onNodeDataChange} onBlockSaved={onBlockSaved} />
     case "compositionRef":
       return <CompositionRefProperties nodeId={node.id} data={data} compositions={compositions ?? []} onChange={onNodeDataChange} />
     case "ifBoolean":
@@ -647,6 +651,160 @@ function CompositionRefProperties({
       <p className="text-[10px] text-muted-foreground leading-relaxed">
         The referenced composition will be assembled inline, inheriting the same context. Circular references are detected and prevented.
       </p>
+    </div>
+  )
+}
+
+/* ─── Model Config Panel ─── */
+export function ModelConfigPanel({
+  metadata,
+  onMetadataChange,
+}: {
+  metadata: Record<string, any>
+  onMetadataChange: (metadata: Record<string, any>) => void
+}) {
+  const [env, setEnv] = useState<"dev" | "staging" | "prod">("dev")
+  const modelConfig = (metadata?.modelConfig ?? {}) as Record<string, any>
+  const envConfig = modelConfig[env] ?? {}
+
+  function updateEnvConfig(field: string, value: any) {
+    const updated = {
+      ...modelConfig,
+      [env]: { ...envConfig, [field]: value },
+    }
+    onMetadataChange({ ...metadata, modelConfig: updated })
+  }
+
+  return (
+    <div className="border-t border-border pt-3 mt-3">
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+        Model Config
+      </div>
+      <div className="flex gap-1 mb-3">
+        {(["dev", "staging", "prod"] as const).map((e) => (
+          <button
+            key={e}
+            onClick={() => setEnv(e)}
+            className={cn(
+              "px-2.5 py-1 text-[10px] font-medium rounded transition-colors",
+              env === e
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {e}
+          </button>
+        ))}
+      </div>
+      <div className="space-y-2">
+        <FieldLabel label="Model">
+          <Input
+            value={envConfig.model ?? ""}
+            onChange={(e) => updateEnvConfig("model", e.target.value)}
+            placeholder="anthropic/claude-sonnet-4-6"
+            className="h-7 text-xs"
+          />
+        </FieldLabel>
+        <div className="grid grid-cols-2 gap-2">
+          <FieldLabel label="Temperature">
+            <Input
+              type="number"
+              step="0.1"
+              min="0"
+              max="2"
+              value={envConfig.temperature ?? ""}
+              onChange={(e) => updateEnvConfig("temperature", parseFloat(e.target.value) || undefined)}
+              placeholder="0.7"
+              className="h-7 text-xs"
+            />
+          </FieldLabel>
+          <FieldLabel label="Max Tokens">
+            <Input
+              type="number"
+              value={envConfig.maxTokens ?? ""}
+              onChange={(e) => updateEnvConfig("maxTokens", parseInt(e.target.value) || undefined)}
+              placeholder="2048"
+              className="h-7 text-xs"
+            />
+          </FieldLabel>
+        </div>
+        <FieldLabel label="Top P">
+          <Input
+            type="number"
+            step="0.1"
+            min="0"
+            max="1"
+            value={envConfig.topP ?? ""}
+            onChange={(e) => updateEnvConfig("topP", parseFloat(e.target.value) || undefined)}
+            placeholder="1.0"
+            className="h-7 text-xs"
+          />
+        </FieldLabel>
+        <FieldLabel label="Stop Sequences">
+          <Input
+            value={(envConfig.stopSequences ?? []).join(", ")}
+            onChange={(e) => updateEnvConfig("stopSequences", e.target.value.split(",").map((s: string) => s.trim()).filter(Boolean))}
+            placeholder="comma-separated"
+            className="h-7 text-xs"
+          />
+        </FieldLabel>
+      </div>
+    </div>
+  )
+}
+
+/* ─── Tool Properties ─── */
+function ToolProperties({
+  nodeId,
+  data,
+  blocks,
+  onChange,
+  onBlockSaved,
+}: {
+  nodeId: string
+  data: Record<string, unknown>
+  blocks: BlockInfo[]
+  onChange: (nodeId: string, data: Record<string, unknown>) => void
+  onBlockSaved?: () => void
+}) {
+  const blockId = data.blockId as string
+  const selectedBlock = blocks.find((b) => b.id === blockId)
+
+  return (
+    <div className="space-y-3">
+      <FieldLabel label="Tool Definition">
+        <select
+          value={blockId || ""}
+          onChange={(e) => {
+            const chosen = blocks.find((b) => b.id === e.target.value)
+            let paramCount = 0
+            if (chosen) {
+              try {
+                const schema = JSON.parse(chosen.content)
+                paramCount = Object.keys(schema.properties ?? {}).length
+              } catch {}
+            }
+            onChange(nodeId, {
+              blockId: e.target.value,
+              label: chosen?.name ?? "New Tool",
+              paramCount,
+            })
+          }}
+          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none focus:border-ring focus:ring-1 focus:ring-ring/50"
+        >
+          <option value="">Select a tool...</option>
+          {blocks.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name}
+            </option>
+          ))}
+        </select>
+      </FieldLabel>
+      {selectedBlock && (
+        <div className="text-[10px] text-muted-foreground">
+          {selectedBlock.description ?? "No description"}
+        </div>
+      )}
     </div>
   )
 }

@@ -46,9 +46,9 @@ export async function GET(
     .from(blocks)
     .where(eq(blocks.teamId, teamId))
 
-  const blockLookup: Record<string, { name: string; content: string; version: number; role: string | null }> = {}
+  const blockLookup: Record<string, { name: string; content: string; version: number; role: string | null; kind: string; description: string | null }> = {}
   for (const b of teamBlocks) {
-    blockLookup[b.id] = { name: b.name, content: b.content, version: b.version, role: b.role }
+    blockLookup[b.id] = { name: b.name, content: b.content, version: b.version, role: b.role, kind: b.kind, description: b.description }
   }
 
   // Get all compositions for this team

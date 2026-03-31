@@ -79,3 +79,72 @@ describe("SDK compose", () => {
     expect(result.version).toBe("v3")
   })
 })
+
+const configWithTools: SDKConfig = {
+  version: "1",
+  environment: "prod",
+  blocks: {
+    ...mockConfig.blocks,
+    "block-weather": {
+      name: "get_weather",
+      content: '{"type":"object","properties":{"location":{"type":"string"}},"required":["location"]}',
+      version: 1,
+      kind: "tool",
+      description: "Get current weather",
+    },
+  },
+  compositions: [
+    {
+      id: "comp-tools",
+      name: "with-tools",
+      version: 1,
+      contextSchema: [],
+      metadata: {
+        modelConfig: {
+          prod: { model: "anthropic/claude-sonnet-4-6", temperature: 0.3, maxTokens: 2048 },
+        },
+      },
+      graph: {
+        nodes: [
+          { id: "start", type: "start", position: { x: 0, y: 0 }, data: {} },
+          { id: "n-role", type: "block", position: { x: 100, y: 0 }, data: { blockId: "block-role" } },
+          { id: "t-weather", type: "tool", position: { x: 200, y: 0 }, data: { blockId: "block-weather" } },
+          { id: "output", type: "promptOutput", position: { x: 300, y: 0 }, data: {} },
+        ],
+        edges: [
+          { id: "e1", source: "start", target: "n-role" },
+          { id: "e2", source: "n-role", target: "t-weather" },
+          { id: "e3", source: "t-weather", target: "output" },
+        ],
+      },
+    },
+  ],
+}
+
+describe("SDK compose — model, config, tools", () => {
+  it("returns model and config from metadata", () => {
+    const result = compose(configWithTools, "with-tools", {})
+    expect(result.model).toBe("anthropic/claude-sonnet-4-6")
+    expect(result.config).toEqual({ temperature: 0.3, maxTokens: 2048 })
+  })
+
+  it("returns tools array from tool blocks", () => {
+    const result = compose(configWithTools, "with-tools", {})
+    expect(result.tools).toHaveLength(1)
+    expect(result.tools[0].name).toBe("get_weather")
+    expect(result.tools[0].input_schema.required).toEqual(["location"])
+  })
+
+  it("excludes tool block content from text", () => {
+    const result = compose(configWithTools, "with-tools", {})
+    expect(result.text).toContain("senior engineer")
+    expect(result.text).not.toContain("location")
+  })
+
+  it("returns null model when no modelConfig", () => {
+    const result = compose(mockConfig, "builder", { projectType: "web", hasAuth: false })
+    expect(result.model).toBeNull()
+    expect(result.config).toBeNull()
+    expect(result.tools).toEqual([])
+  })
+})

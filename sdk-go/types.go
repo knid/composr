@@ -18,17 +18,35 @@ type Message struct {
 	Content string `json:"content"`
 }
 
+// ModelConfig holds model-specific configuration parameters.
+type ModelConfig struct {
+	Temperature   *float64 `json:"temperature,omitempty"`
+	MaxTokens     *int     `json:"maxTokens,omitempty"`
+	TopP          *float64 `json:"topP,omitempty"`
+	StopSequences []string `json:"stopSequences,omitempty"`
+}
+
+// ToolDefinition describes a tool/function that the model can call.
+type ToolDefinition struct {
+	Name        string                 `json:"name"`
+	Description string                 `json:"description"`
+	InputSchema map[string]interface{} `json:"input_schema"`
+}
+
 // ComposeResult is returned by Compose.
 type ComposeResult struct {
-	ID              string    `json:"id"`
-	Text            string    `json:"text"`
-	Messages        []Message `json:"messages"`
-	Version         string    `json:"version"`
-	VariantID       *string   `json:"variant_id"`
-	TokenCount      int       `json:"token_count"`
-	Blocks          []string  `json:"blocks"`
-	CompositionName string    `json:"composition_name"`
-	Errors          []string  `json:"errors,omitempty"`
+	ID              string           `json:"id"`
+	Text            string           `json:"text"`
+	Messages        []Message        `json:"messages"`
+	Model           string           `json:"model"`
+	Config          *ModelConfig     `json:"config"`
+	Tools           []ToolDefinition `json:"tools"`
+	Version         string           `json:"version"`
+	VariantID       *string          `json:"variant_id"`
+	TokenCount      int              `json:"token_count"`
+	Blocks          []string         `json:"blocks"`
+	CompositionName string           `json:"composition_name"`
+	Errors          []string         `json:"errors,omitempty"`
 }
 
 // TrackPayload is sent to the track endpoint.
@@ -49,20 +67,22 @@ type SDKConfig struct {
 
 // BlockConfig represents a single prompt block.
 type BlockConfig struct {
-	Name    string `json:"name"`
-	Content string `json:"content"`
-	Version int    `json:"version"`
-	Role    string `json:"role,omitempty"`
+	Name        string `json:"name"`
+	Content     string `json:"content"`
+	Version     int    `json:"version"`
+	Role        string `json:"role,omitempty"`
+	Kind        string `json:"kind,omitempty"`
+	Description string `json:"description,omitempty"`
 }
 
 // CompositionConfig represents a single composition with its graph.
 type CompositionConfig struct {
-	ID            string        `json:"id"`
-	Name          string        `json:"name"`
-	Version       int           `json:"version"`
-	Graph         Graph         `json:"graph"`
-	ContextSchema []interface{} `json:"context_schema"`
-	Metadata      interface{}   `json:"metadata,omitempty"`
+	ID            string                 `json:"id"`
+	Name          string                 `json:"name"`
+	Version       int                    `json:"version"`
+	Graph         Graph                  `json:"graph"`
+	ContextSchema []interface{}          `json:"context_schema"`
+	Metadata      map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // Graph holds the nodes and edges of a composition graph.

@@ -4,12 +4,13 @@ import { useState, useCallback, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { FlowCanvas, type FlowCanvasHandle } from "@/components/editor/flow-canvas"
 import { NodePalette } from "@/components/editor/node-palette"
-import { PropertiesPanel } from "@/components/editor/properties-panel"
+import { PropertiesPanel, ModelConfigPanel } from "@/components/editor/properties-panel"
 import { PreviewPanel } from "@/components/editor/preview-panel"
+import { TestPanel } from "@/components/editor/test-panel"
 import { ContextSchemaEditor, type ContextField } from "@/components/editor/context-schema-editor"
 import { EvalConfigPanel } from "./eval-config-panel"
 import { Button } from "@/components/ui/button"
-import { Save, Trash2, Rocket, FlaskConical, Braces, Eye, History, LayoutGrid } from "lucide-react"
+import { Save, Trash2, Rocket, FlaskConical, Braces, Eye, History, LayoutGrid, Play } from "lucide-react"
 import { toast } from "sonner"
 import type { Node, Edge } from "@xyflow/react"
 import {
@@ -21,6 +22,7 @@ interface BlockInfo {
   name: string
   content: string
   description?: string
+  kind?: string
 }
 
 interface CompositionEditorProps {
@@ -30,6 +32,7 @@ interface CompositionEditorProps {
   initialNodes: Node[]
   initialEdges: Edge[]
   contextSchema: ContextField[]
+  metadata: Record<string, any>
 }
 
 export function CompositionEditor({
@@ -39,6 +42,7 @@ export function CompositionEditor({
   initialNodes,
   initialEdges,
   contextSchema: initialContextSchema,
+  metadata: initialMetadata,
 }: CompositionEditorProps) {
   const router = useRouter()
   const [dirty, setDirty] = useState(false)
@@ -50,7 +54,9 @@ export function CompositionEditor({
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
   const [blocks, setBlocks] = useState<BlockInfo[]>([])
   const [contextSchema, setContextSchema] = useState<ContextField[]>(initialContextSchema ?? [])
+  const [metadata, setMetadata] = useState<Record<string, any>>(initialMetadata ?? {})
   const [previewOpen, setPreviewOpen] = useState(true)
+  const [testOpen, setTestOpen] = useState(false)
   const [liveNodes, setLiveNodes] = useState<Node[]>(initialNodes)
   const [liveEdges, setLiveEdges] = useState<Edge[]>(initialEdges)
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -142,6 +148,12 @@ export function CompositionEditor({
     setDirty(true)
   }, [])
 
+  /* Metadata change */
+  const onMetadataChange = useCallback((m: Record<string, any>) => {
+    setMetadata(m)
+    setDirty(true)
+  }, [])
+
   /* Save */
   async function save() {
     setSaving(true)
@@ -151,6 +163,7 @@ export function CompositionEditor({
       body: JSON.stringify({
         graph: graphRef.current,
         contextSchema,
+        metadata,
       }),
     })
     if (res.ok) {
@@ -250,6 +263,14 @@ export function CompositionEditor({
           </Button>
           <Button
             size="sm"
+            variant={testOpen ? "default" : "outline"}
+            className="gap-1.5"
+            onClick={() => setTestOpen(!testOpen)}
+          >
+            <Play className="h-3.5 w-3.5" /> Test
+          </Button>
+          <Button
+            size="sm"
             variant={previewOpen ? "default" : "outline"}
             className="gap-1.5"
             onClick={() => setPreviewOpen(!previewOpen)}
@@ -334,6 +355,20 @@ export function CompositionEditor({
             onBlockSaved={refreshBlocks}
           />
         )}
+
+        {/* Right: Composition panel with model config (when no node is selected) */}
+        {!selectedNode && (
+          <div className="flex h-full w-[264px] flex-col border-l border-border bg-card/50">
+            <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Composition
+              </span>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3">
+              <ModelConfigPanel metadata={metadata} onMetadataChange={onMetadataChange} />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Bottom: Preview Panel ── */}
@@ -344,6 +379,13 @@ export function CompositionEditor({
           blocks={blockLookup}
           contextSchema={contextSchema}
         />
+      )}
+
+      {/* ── Bottom: Test Panel ── */}
+      {testOpen && (
+        <div className="border-t border-border h-[300px]">
+          <TestPanel compositionId={id} contextSchema={contextSchema} />
+        </div>
       )}
 
       {/* ── Dialogs ── */}

@@ -1,6 +1,7 @@
 package composr
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"math/rand"
@@ -65,6 +66,7 @@ func compose(config *SDKConfig, compositionName string, ctx ComposeContext, opts
 	var parts []string
 	var messages []Message
 	var resolvedBlocks []string
+	var tools []ToolDefinition
 	var errors []string
 
 	// Context schema validation
@@ -129,6 +131,22 @@ func compose(config *SDKConfig, compositionName string, ctx ComposeContext, opts
 				currentRole = blockRole
 				currentRoleContent = append(currentRoleContent, content)
 			}
+
+		case "tool":
+			blockID, _ := node.Data["blockId"].(string)
+			block, exists := config.Blocks[blockID]
+			if exists {
+				var inputSchema map[string]interface{}
+				if err := json.Unmarshal([]byte(block.Content), &inputSchema); err == nil {
+					tools = append(tools, ToolDefinition{
+						Name:        block.Name,
+						Description: block.Description,
+						InputSchema: inputSchema,
+					})
+				}
+				resolvedBlocks = append(resolvedBlocks, block.Name)
+			}
+			// Falls through to edge-following at bottom
 
 		case "compositionRef":
 			compID, _ := node.Data["compositionId"].(string)
@@ -270,6 +288,43 @@ func compose(config *SDKConfig, compositionName string, ctx ComposeContext, opts
 
 	text := strings.Join(parts, "\n\n")
 
+	// Extract model config from composition metadata
+	var model string
+	var modelCfg *ModelConfig
+	if comp.Metadata != nil {
+		if mcRaw, ok := comp.Metadata["modelConfig"]; ok {
+			if mcMap, ok := mcRaw.(map[string]interface{}); ok {
+				if envRaw, ok := mcMap[config.Environment]; ok {
+					if envMap, ok := envRaw.(map[string]interface{}); ok {
+						if m, ok := envMap["model"].(string); ok {
+							model = m
+						}
+						if model != "" {
+							modelCfg = &ModelConfig{}
+							if temp, ok := envMap["temperature"].(float64); ok {
+								modelCfg.Temperature = &temp
+							}
+							if mt, ok := envMap["maxTokens"].(float64); ok {
+								mt2 := int(mt)
+								modelCfg.MaxTokens = &mt2
+							}
+							if tp, ok := envMap["topP"].(float64); ok {
+								modelCfg.TopP = &tp
+							}
+							if ss, ok := envMap["stopSequences"].([]interface{}); ok {
+								for _, s := range ss {
+									if sv, ok := s.(string); ok {
+										modelCfg.StopSequences = append(modelCfg.StopSequences, sv)
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	// Generate assembly ID matching the TS pattern: asm_{timestamp}_{random6}
 	id := fmt.Sprintf("asm_%d_%s", time.Now().UnixMilli(), randomString(6))
 
@@ -277,6 +332,9 @@ func compose(config *SDKConfig, compositionName string, ctx ComposeContext, opts
 		ID:              id,
 		Text:            text,
 		Messages:        messages,
+		Model:           model,
+		Config:          modelCfg,
+		Tools:           tools,
 		Version:         fmt.Sprintf("v%d", comp.Version),
 		VariantID:       variantID,
 		TokenCount:      int(math.Round(float64(len(text)) / 4.0)),

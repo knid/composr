@@ -4,6 +4,21 @@ from typing import Any
 
 
 @dataclass
+class ModelConfig:
+    temperature: float | None = None
+    max_tokens: int | None = None
+    top_p: float | None = None
+    stop_sequences: list[str] | None = None
+
+
+@dataclass
+class ToolDefinition:
+    name: str
+    description: str
+    input_schema: dict[str, Any]
+
+
+@dataclass
 class ComposeResult:
     id: str
     text: str
@@ -12,6 +27,11 @@ class ComposeResult:
     token_count: int
     blocks: list[str]
     composition_name: str
+    messages: list[dict[str, Any]] = field(default_factory=list)
+    model: str | None = None
+    config: ModelConfig | None = None
+    tools: list[ToolDefinition] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
 
 
 @dataclass

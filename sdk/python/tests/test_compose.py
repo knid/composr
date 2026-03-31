@@ -71,3 +71,83 @@ def test_returns_metadata():
 def test_throws_for_unknown_composition():
     with pytest.raises(ValueError, match="not found"):
         compose(MOCK_CONFIG, "nonexistent", {})
+
+
+MODEL_TOOL_CONFIG = SDKConfig(
+    version="1",
+    environment="prod",
+    blocks={
+        "block-sys": {
+            "name": "system-block",
+            "content": "You are a helpful assistant.",
+            "version": 1,
+        },
+        "block-tool": {
+            "name": "get_weather",
+            "description": "Get current weather for a location",
+            "kind": "tool",
+            "content": '{"type":"object","properties":{"location":{"type":"string","description":"City name"}},"required":["location"]}',
+            "version": 1,
+        },
+    },
+    compositions=[
+        {
+            "id": "comp-tools",
+            "name": "with-tools",
+            "version": 2,
+            "contextSchema": [],
+            "metadata": {
+                "modelConfig": {
+                    "prod": {
+                        "model": "anthropic/claude-sonnet-4-6",
+                        "temperature": 0.7,
+                        "maxTokens": 1024,
+                        "topP": 0.9,
+                    }
+                }
+            },
+            "graph": {
+                "nodes": [
+                    {"id": "start", "type": "start", "data": {}},
+                    {"id": "n-sys", "type": "block", "data": {"blockId": "block-sys"}},
+                    {"id": "n-tool", "type": "tool", "data": {"blockId": "block-tool"}},
+                    {"id": "output", "type": "output", "data": {}},
+                ],
+                "edges": [
+                    {"id": "e1", "source": "start", "target": "n-sys"},
+                    {"id": "e2", "source": "n-sys", "target": "n-tool"},
+                    {"id": "e3", "source": "n-tool", "target": "output"},
+                ],
+            },
+        }
+    ],
+)
+
+
+def test_model_config_and_tools():
+    result = compose(MODEL_TOOL_CONFIG, "with-tools", {})
+
+    # Model
+    assert result.model == "anthropic/claude-sonnet-4-6"
+
+    # Config
+    assert result.config is not None
+    assert result.config.temperature == 0.7
+    assert result.config.max_tokens == 1024
+    assert result.config.top_p == 0.9
+
+    # Tools
+    assert len(result.tools) == 1
+    tool = result.tools[0]
+    assert tool.name == "get_weather"
+    assert tool.description == "Get current weather for a location"
+    assert tool.input_schema["type"] == "object"
+    assert "location" in tool.input_schema["properties"]
+
+    # Text still contains the non-tool block
+    assert "You are a helpful assistant." in result.text
+
+    # Both blocks (system + tool) recorded
+    assert len(result.blocks) == 2
+    assert "system-block" in result.blocks
+    assert "get_weather" in result.blocks

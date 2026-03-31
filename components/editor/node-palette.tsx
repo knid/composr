@@ -3,7 +3,7 @@
 import { type DragEvent } from "react"
 import { cn } from "@/lib/utils"
 import {
-  FileText, GitBranch, ToggleLeft, List, Percent, Code2, Merge, Layers,
+  FileText, GitBranch, ToggleLeft, List, Percent, Code2, Merge, Layers, Wrench,
 } from "lucide-react"
 
 interface PaletteItem {
@@ -21,6 +21,13 @@ const paletteItems: PaletteItem[] = [
     icon: <FileText className="h-3.5 w-3.5" />,
     color: "text-green-400 bg-green-400/10 border-green-400/20",
     description: "Prompt content block",
+  },
+  {
+    type: "tool",
+    label: "Tool",
+    icon: <Wrench className="h-3.5 w-3.5" />,
+    color: "text-amber-400 bg-amber-400/10 border-amber-400/20",
+    description: "Function calling def",
   },
   {
     type: "ifBoolean",

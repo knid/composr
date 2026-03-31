@@ -44,6 +44,7 @@ export const blocks = pgTable("blocks", {
   description: text("description"),
   content: text("content").notNull().default(""),
   role: text("role"), // "system" | "user" | "assistant" | null (null = inherits/default "system")
+  kind: text("kind").notNull().default("prompt"), // "prompt" | "tool"
   version: integer("version").notNull().default(1),
   tags: jsonb("tags").notNull().default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -197,6 +198,18 @@ export const usageRecords = pgTable("usage_records", {
   date: text("date").notNull(), // "2026-03-30" — daily bucket
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+})
+
+// provider_keys — LLM provider API keys (encrypted)
+export const providerKeys = pgTable("provider_keys", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  teamId: text("team_id")
+    .notNull()
+    .references(() => teams.id),
+  provider: text("provider").notNull(), // "anthropic" | "openai"
+  encryptedKey: text("encrypted_key").notNull(),
+  keyPrefix: text("key_prefix").notNull(), // "sk-ant-...4f2a"
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 })
 
 // pipelines

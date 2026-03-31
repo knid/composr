@@ -2,6 +2,7 @@
 
 import { Boxes } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 
 interface BlockCardProps {
   block: {
@@ -12,6 +13,7 @@ interface BlockCardProps {
     version: number
     tags: string[]
     updatedAt: string
+    kind?: string
   }
   onClick: () => void
   usedIn: string[]
@@ -31,6 +33,14 @@ export function BlockCard({ block, onClick, usedIn }: BlockCardProps) {
           <span className="text-sm font-medium">{block.name}</span>
         </div>
         <span className="font-mono text-xs text-muted-foreground">v{block.version}</span>
+        <span className={cn(
+          "rounded px-1.5 py-0.5 text-[10px] font-medium",
+          block.kind === "tool"
+            ? "bg-amber-500/10 text-amber-500"
+            : "bg-blue-500/10 text-blue-500"
+        )}>
+          {block.kind === "tool" ? "tool" : "prompt"}
+        </span>
       </div>
       {block.description && (
         <p className="mt-1.5 text-xs text-muted-foreground line-clamp-1">{block.description}</p>
