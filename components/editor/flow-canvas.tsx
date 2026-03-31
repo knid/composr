@@ -20,6 +20,7 @@ import { IfPercentageNode } from "./nodes/if-percentage-node"
 import { MergeNode } from "./nodes/merge-node"
 import { IfExpressionNode } from "./nodes/if-expression-node"
 import { CompositionRefNode } from "./nodes/composition-ref-node"
+import { ToolNode } from "./nodes/tool-node"
 
 const nodeTypes = {
   start: StartNode,
@@ -31,6 +32,7 @@ const nodeTypes = {
   ifExpression: IfExpressionNode,
   merge: MergeNode,
   compositionRef: CompositionRefNode,
+  tool: ToolNode,
 }
 
 const IF_NODE_TYPES = new Set(["ifBoolean", "ifSwitch", "ifPercentage", "ifExpression"])
@@ -39,6 +41,7 @@ const PROTECTED_NODE_TYPES = new Set(["start", "promptOutput"])
 
 const DEFAULT_NODE_DATA: Record<string, Record<string, unknown>> = {
   block: { blockId: "", label: "New Block", tokenCount: 0 },
+  tool: { blockId: "", label: "New Tool", paramCount: 0 },
   ifBoolean: { field: "fieldName" },
   ifSwitch: { field: "fieldName", cases: ["case1", "case2"] },
   ifPercentage: { variants: [{ name: "A", weight: 50 }, { name: "B", weight: 50 }] },

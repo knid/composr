@@ -5,7 +5,7 @@ import type { Node } from "@xyflow/react"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { X, Plus, Trash2, FileText, ToggleLeft, List, Percent, Code2, Merge, Play, Flag, Save, Layers } from "lucide-react"
+import { X, Plus, Trash2, FileText, ToggleLeft, List, Percent, Code2, Merge, Play, Flag, Save, Layers, Wrench } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { MonacoBlockEditor } from "@/components/editor/monaco-block-editor"
 
@@ -72,6 +72,7 @@ function NodeTypeIcon({ type }: { type: string }) {
     case "ifPercentage": return <Percent className={cn(cls, "text-primary")} />
     case "ifExpression": return <Code2 className={cn(cls, "text-primary")} />
     case "compositionRef": return <Layers className={cn(cls, "text-primary")} />
+    case "tool": return <Wrench className={cn(cls, "text-amber-400")} />
     case "merge": return <Merge className={cn(cls, "text-primary")} />
     case "start": return <Play className={cn(cls, "text-primary")} />
     case "promptOutput": return <Flag className={cn(cls, "text-success")} />
@@ -87,6 +88,7 @@ function nodeTypeLabel(type: string): string {
     case "ifPercentage": return "IF Percentage"
     case "ifExpression": return "IF Expression"
     case "compositionRef": return "Composition Ref"
+    case "tool": return "Tool"
     case "merge": return "Merge"
     case "start": return "Start"
     case "promptOutput": return "Output"
@@ -113,6 +115,8 @@ function NodeProperties({
   switch (type) {
     case "block":
       return <BlockProperties nodeId={node.id} data={data} blocks={blocks} onChange={onNodeDataChange} onBlockSaved={onBlockSaved} />
+    case "tool":
+      return <ToolProperties nodeId={node.id} data={data} blocks={blocks.filter(b => (b as any).kind === "tool")} onChange={onNodeDataChange} onBlockSaved={onBlockSaved} />
     case "compositionRef":
       return <CompositionRefProperties nodeId={node.id} data={data} compositions={compositions ?? []} onChange={onNodeDataChange} />
     case "ifBoolean":
@@ -745,6 +749,62 @@ export function ModelConfigPanel({
           />
         </FieldLabel>
       </div>
+    </div>
+  )
+}
+
+/* ─── Tool Properties ─── */
+function ToolProperties({
+  nodeId,
+  data,
+  blocks,
+  onChange,
+  onBlockSaved,
+}: {
+  nodeId: string
+  data: Record<string, unknown>
+  blocks: BlockInfo[]
+  onChange: (nodeId: string, data: Record<string, unknown>) => void
+  onBlockSaved?: () => void
+}) {
+  const blockId = data.blockId as string
+  const selectedBlock = blocks.find((b) => b.id === blockId)
+
+  return (
+    <div className="space-y-3">
+      <FieldLabel label="Tool Definition">
+        <select
+          value={blockId || ""}
+          onChange={(e) => {
+            const chosen = blocks.find((b) => b.id === e.target.value)
+            let paramCount = 0
+            if (chosen) {
+              try {
+                const schema = JSON.parse(chosen.content)
+                paramCount = Object.keys(schema.properties ?? {}).length
+              } catch {}
+            }
+            onChange(nodeId, {
+              blockId: e.target.value,
+              label: chosen?.name ?? "New Tool",
+              paramCount,
+            })
+          }}
+          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none focus:border-ring focus:ring-1 focus:ring-ring/50"
+        >
+          <option value="">Select a tool...</option>
+          {blocks.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name}
+            </option>
+          ))}
+        </select>
+      </FieldLabel>
+      {selectedBlock && (
+        <div className="text-[10px] text-muted-foreground">
+          {selectedBlock.description ?? "No description"}
+        </div>
+      )}
     </div>
   )
 }

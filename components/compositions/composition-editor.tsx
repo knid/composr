@@ -21,6 +21,7 @@ interface BlockInfo {
   name: string
   content: string
   description?: string
+  kind?: string
 }
 
 interface CompositionEditorProps {
