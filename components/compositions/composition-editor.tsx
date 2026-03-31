@@ -6,10 +6,11 @@ import { FlowCanvas, type FlowCanvasHandle } from "@/components/editor/flow-canv
 import { NodePalette } from "@/components/editor/node-palette"
 import { PropertiesPanel, ModelConfigPanel } from "@/components/editor/properties-panel"
 import { PreviewPanel } from "@/components/editor/preview-panel"
+import { TestPanel } from "@/components/editor/test-panel"
 import { ContextSchemaEditor, type ContextField } from "@/components/editor/context-schema-editor"
 import { EvalConfigPanel } from "./eval-config-panel"
 import { Button } from "@/components/ui/button"
-import { Save, Trash2, Rocket, FlaskConical, Braces, Eye, History, LayoutGrid } from "lucide-react"
+import { Save, Trash2, Rocket, FlaskConical, Braces, Eye, History, LayoutGrid, Play } from "lucide-react"
 import { toast } from "sonner"
 import type { Node, Edge } from "@xyflow/react"
 import {
@@ -55,6 +56,7 @@ export function CompositionEditor({
   const [contextSchema, setContextSchema] = useState<ContextField[]>(initialContextSchema ?? [])
   const [metadata, setMetadata] = useState<Record<string, any>>(initialMetadata ?? {})
   const [previewOpen, setPreviewOpen] = useState(true)
+  const [testOpen, setTestOpen] = useState(false)
   const [liveNodes, setLiveNodes] = useState<Node[]>(initialNodes)
   const [liveEdges, setLiveEdges] = useState<Edge[]>(initialEdges)
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -261,6 +263,14 @@ export function CompositionEditor({
           </Button>
           <Button
             size="sm"
+            variant={testOpen ? "default" : "outline"}
+            className="gap-1.5"
+            onClick={() => setTestOpen(!testOpen)}
+          >
+            <Play className="h-3.5 w-3.5" /> Test
+          </Button>
+          <Button
+            size="sm"
             variant={previewOpen ? "default" : "outline"}
             className="gap-1.5"
             onClick={() => setPreviewOpen(!previewOpen)}
@@ -369,6 +379,13 @@ export function CompositionEditor({
           blocks={blockLookup}
           contextSchema={contextSchema}
         />
+      )}
+
+      {/* ── Bottom: Test Panel ── */}
+      {testOpen && (
+        <div className="border-t border-border h-[300px]">
+          <TestPanel compositionId={id} contextSchema={contextSchema} />
+        </div>
       )}
 
       {/* ── Dialogs ── */}
