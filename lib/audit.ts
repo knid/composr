@@ -1,5 +1,6 @@
 import { db } from "@/lib/db"
 import { auditLogs } from "@/lib/schema"
+import { fireWebhooks } from "@/lib/webhooks"
 
 interface AuditEntry {
   teamId: string
@@ -19,6 +20,13 @@ export async function logAudit(entry: AuditEntry) {
       resourceType: entry.resourceType,
       resourceId: entry.resourceId ?? null,
       metadata: entry.metadata ?? {},
+    })
+
+    // Fire matching webhooks (async, non-blocking)
+    void fireWebhooks(entry.teamId, entry.action, {
+      type: entry.resourceType,
+      id: entry.resourceId,
+      metadata: entry.metadata,
     })
   } catch (error) {
     // Audit logging should never break the main flow
