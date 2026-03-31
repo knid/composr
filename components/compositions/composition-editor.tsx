@@ -13,7 +13,7 @@ import { VersionDiff } from "@/components/editor/version-diff"
 import { diffLines } from "@/lib/diff"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Save, Trash2, Rocket, FlaskConical, Braces, Eye, History, LayoutGrid, Play } from "lucide-react"
+import { Save, Trash2, Rocket, FlaskConical, Braces, Eye, History, LayoutGrid, Play, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import type { Node, Edge } from "@xyflow/react"
 import {
@@ -52,6 +52,9 @@ export function CompositionEditor({
   const [saving, setSaving] = useState(false)
   const [deployOpen, setDeployOpen] = useState(false)
   const [deploying, setDeploying] = useState(false)
+  const [prodConfirmOpen, setProdConfirmOpen] = useState(false)
+  const [prodDiff, setProdDiff] = useState<Array<{ type: "added" | "removed" | "unchanged"; text: string }> | null>(null)
+  const [loadingProdDiff, setLoadingProdDiff] = useState(false)
   const [evalOpen, setEvalOpen] = useState(false)
   const [schemaOpen, setSchemaOpen] = useState(false)
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
@@ -267,6 +270,51 @@ export function CompositionEditor({
       toast.error(data.error ?? "Deploy failed")
     }
     setDeploying(false)
+  }
+
+  async function prepareProdDeploy() {
+    setDeployOpen(false)
+    setProdConfirmOpen(true)
+    setLoadingProdDiff(true)
+    setProdDiff(null)
+
+    try {
+      // Assemble current version
+      const currentRes = await fetch(`/api/compositions/${id}/assemble`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ graph: graphRef.current }),
+      }).then((r) => r.json())
+
+      // If there are previous versions, diff against the most recent
+      const versionsRes = await fetch(`/api/compositions/${id}/versions`)
+      const versions = await versionsRes.json()
+      if (Array.isArray(versions) && versions.length > 0) {
+        const prevRes = await fetch(`/api/compositions/${id}/assemble`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ graph: versions[0].graph }),
+        }).then((r) => r.json())
+        setProdDiff(diffLines(prevRes.text, currentRes.text))
+      }
+    } catch {}
+    setLoadingProdDiff(false)
+  }
+
+  async function requestReview() {
+    try {
+      await fetch("/api/audit-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "deployment.review_requested",
+          resourceType: "composition",
+          resourceId: id,
+          metadata: { version, environment: "prod" },
+        }),
+      })
+    } catch {}
+    toast.success("Review requested — visible in the audit log")
   }
 
   /* Block lookup for preview panel */
@@ -549,7 +597,7 @@ export function CompositionEditor({
             an environment.
           </p>
           <div className="flex flex-col gap-2">
-            {(["dev", "staging", "prod"] as const).map((env) => (
+            {(["dev", "staging"] as const).map((env) => (
               <Button
                 key={env}
                 variant="outline"
@@ -557,18 +605,69 @@ export function CompositionEditor({
                 disabled={deploying}
                 onClick={() => deploy(env)}
               >
-                <span
-                  className={`h-2 w-2 rounded-full ${
-                    env === "prod"
-                      ? "bg-red-500"
-                      : env === "staging"
-                        ? "bg-yellow-500"
-                        : "bg-green-500"
-                  }`}
-                />
+                <span className={`h-2 w-2 rounded-full ${env === "staging" ? "bg-yellow-500" : "bg-green-500"}`} />
                 {env}
               </Button>
             ))}
+            <Button
+              variant="outline"
+              className="justify-start gap-2"
+              disabled={deploying}
+              onClick={prepareProdDeploy}
+            >
+              <span className="h-2 w-2 rounded-full bg-red-500" />
+              prod
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={prodConfirmOpen} onOpenChange={setProdConfirmOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Deploy to Production</DialogTitle>
+          </DialogHeader>
+
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
+            <span className="text-sm text-amber-500">This will affect live traffic immediately</span>
+          </div>
+
+          {loadingProdDiff ? (
+            <p className="text-sm text-muted-foreground">Loading changes...</p>
+          ) : prodDiff && prodDiff.length > 0 ? (
+            <div>
+              <p className="text-xs text-muted-foreground mb-2">Changes from previous version:</p>
+              <VersionDiff
+                diff={prodDiff}
+                leftLabel="Previous"
+                rightLabel={`v${version} (deploying)`}
+              />
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">No previous version to compare against.</p>
+          )}
+
+          <div className="flex items-center justify-between pt-2">
+            <Button size="sm" variant="outline" onClick={requestReview}>
+              Request Review
+            </Button>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setProdConfirmOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={deploying}
+                onClick={async () => {
+                  await deploy("prod")
+                  setProdConfirmOpen(false)
+                }}
+              >
+                Deploy to prod
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
