@@ -9,7 +9,7 @@ import { PreviewPanel } from "@/components/editor/preview-panel"
 import { ContextSchemaEditor, type ContextField } from "@/components/editor/context-schema-editor"
 import { EvalConfigPanel } from "./eval-config-panel"
 import { Button } from "@/components/ui/button"
-import { Save, Trash2, Rocket, FlaskConical, Braces, Eye, History } from "lucide-react"
+import { Save, Trash2, Rocket, FlaskConical, Braces, Eye, History, LayoutGrid } from "lucide-react"
 import { toast } from "sonner"
 import type { Node, Edge } from "@xyflow/react"
 import {
@@ -64,17 +64,45 @@ export function CompositionEditor({
   const initialRef = useRef(true)
   const canvasRef = useRef<FlowCanvasHandle>(null)
 
-  /* Fetch blocks for the block selector and preview */
-  useEffect(() => {
+  const refreshBlocks = useCallback(() => {
     fetch("/api/blocks")
       .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) setBlocks(data)
-      })
-      .catch(() => {
-        /* silently fail — blocks won't be available in the selector */
-      })
+      .then((data) => { if (Array.isArray(data)) setBlocks(data) })
+      .catch(() => {})
   }, [])
+
+  /* Fetch blocks for the block selector and preview */
+  useEffect(() => {
+    refreshBlocks()
+  }, [refreshBlocks])
+
+  /* Global keyboard shortcuts */
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const mod = e.metaKey || e.ctrlKey
+
+      // Cmd+S: Save
+      if (mod && e.key === "s") {
+        e.preventDefault()
+        if (dirty && !saving) save()
+      }
+
+      // Cmd+Z: Undo
+      if (mod && e.key === "z" && !e.shiftKey) {
+        e.preventDefault()
+        canvasRef.current?.undo?.()
+      }
+
+      // Cmd+Shift+Z: Redo
+      if (mod && e.key === "z" && e.shiftKey) {
+        e.preventDefault()
+        canvasRef.current?.redo?.()
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [dirty, saving])
 
   /* Graph change callback — updates both the ref (for save) and live state (for preview) */
   const onGraphChange = useCallback((nodes: Node[], edges: Edge[]) => {
@@ -256,6 +284,15 @@ export function CompositionEditor({
             size="sm"
             variant="outline"
             className="gap-1.5"
+            onClick={() => canvasRef.current?.autoLayout?.()}
+            title="Auto-layout nodes (dagre)"
+          >
+            <LayoutGrid className="h-3.5 w-3.5" /> Layout
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
             onClick={() => setDeployOpen(true)}
           >
             <Rocket className="h-3.5 w-3.5" /> Deploy
@@ -294,6 +331,7 @@ export function CompositionEditor({
             blocks={blocks}
             onNodeDataChange={onNodeDataChange}
             onClose={() => setSelectedNode(null)}
+            onBlockSaved={refreshBlocks}
           />
         )}
       </div>

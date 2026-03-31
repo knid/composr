@@ -114,10 +114,11 @@ describe("assembleGraph", () => {
     expect(result.blocks).toEqual(["ecommerce-rules"]) // last case is default
   })
 
-  it("returns token count estimate", () => {
+  it("returns token count estimate using word-based method", () => {
     const result = assembleGraph(linearGraph.nodes, linearGraph.edges, blocks, { projectType: "web" })
     expect(result.tokenCount).toBeGreaterThan(0)
-    expect(result.tokenCount).toBe(Math.round(result.text.length / 4))
+    const words = result.text.split(/\s+/).filter((w: string) => w.length > 0)
+    expect(result.tokenCount).toBe(Math.round(words.length * 1.3))
   })
 
   it("handles empty graph", () => {
@@ -129,6 +130,8 @@ describe("assembleGraph", () => {
     )
     expect(result.text).toBe("")
     expect(result.blocks).toEqual([])
+    expect(result.skippedBlocks).toEqual([])
+    expect(result.errors).toEqual([])
   })
 
   it("percentage node routes same user to same variant deterministically", () => {
@@ -210,5 +213,70 @@ describe("assembleGraph", () => {
     ]
     const result = assembleGraph(nodes, edges, blocks, { _req: { authenticated: true } })
     expect(result.blocks).toEqual(["auth-rules"])
+  })
+
+  it("returns errors and skippedBlocks fields", () => {
+    const result = assembleGraph(linearGraph.nodes, linearGraph.edges, blocks, { projectType: "web" })
+    expect(result.errors).toEqual([])
+    expect(result.skippedBlocks).toEqual([])
+  })
+
+  it("detects cycles and reports error instead of looping forever", () => {
+    const nodes = [
+      { id: "start", type: "start", data: {} },
+      { id: "n1", type: "block", data: { blockId: "b-role" } },
+      { id: "n2", type: "block", data: { blockId: "b-design" } },
+    ]
+    const edges = [
+      { id: "e1", source: "start", target: "n1" },
+      { id: "e2", source: "n1", target: "n2" },
+      { id: "e3", source: "n2", target: "n1" }, // cycle back to n1
+    ]
+    const result = assembleGraph(nodes, edges, blocks, { projectType: "web" })
+    expect(result.errors).toContain("Cycle detected at node: n1")
+    // Should still have partial results from before the cycle
+    expect(result.blocks).toContain("role")
+  })
+
+  it("reports error for missing block", () => {
+    const nodes = [
+      { id: "start", type: "start", data: {} },
+      { id: "n1", type: "block", data: { blockId: "b-nonexistent" } },
+      { id: "output", type: "promptOutput", data: {} },
+    ]
+    const edges = [
+      { id: "e1", source: "start", target: "n1" },
+      { id: "e2", source: "n1", target: "output" },
+    ]
+    const result = assembleGraph(nodes, edges, blocks, {})
+    expect(result.errors).toContain("Block not found: b-nonexistent")
+  })
+
+  it("reports error when IF Boolean references undefined context field", () => {
+    const result = assembleGraph(booleanGraph.nodes, booleanGraph.edges, blocks, {})
+    expect(result.errors).toContain("IF node 'if-auth' references undefined context field: 'hasAuth'")
+  })
+
+  it("tracks skipped blocks when IF condition excludes a branch", () => {
+    const result = assembleGraph(booleanGraph.nodes, booleanGraph.edges, blocks, { hasAuth: false })
+    expect(result.blocks).toEqual(["role"])
+    expect(result.skippedBlocks).toEqual(["auth-rules"])
+  })
+
+  it("tracks skipped blocks in switch graph", () => {
+    const result = assembleGraph(switchGraph.nodes, switchGraph.edges, blocks, { projectType: "mobile" })
+    expect(result.blocks).toEqual(["mobile-rules"])
+    expect(result.skippedBlocks).toContain("web-rules")
+    expect(result.skippedBlocks).toContain("ecommerce-rules")
+  })
+
+  it("returns zero token count for empty text", () => {
+    const result = assembleGraph(
+      [{ id: "start", type: "start", data: {} }],
+      [],
+      blocks,
+      {}
+    )
+    expect(result.tokenCount).toBe(0)
   })
 })

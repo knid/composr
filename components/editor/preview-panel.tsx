@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { assembleGraph } from "@/lib/graph-engine"
 import { ChevronUp, ChevronDown, Blocks, Hash } from "lucide-react"
 
@@ -15,14 +15,40 @@ export function PreviewPanel({ nodes, edges, blocks, contextSchema }: PreviewPan
   const [expanded, setExpanded] = useState(true)
   const [context, setContext] = useState<Record<string, any>>({})
   const [tab, setTab] = useState<"preview" | "blocks">("preview")
+  const [autoMetaOpen, setAutoMetaOpen] = useState(false)
+  const [autoMeta, setAutoMeta] = useState({
+    hour: new Date().getHours(),
+    dayOfWeek: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date().getDay()],
+    country: "US",
+    userId: "test-user-1",
+  })
+
+  useEffect(() => {
+    const defaults: Record<string, any> = {}
+    for (const field of contextSchema) {
+      if (field.type === "boolean") defaults[field.name] = false
+      else if (field.type === "enum" && field.values?.length) defaults[field.name] = field.values[0]
+      else if (field.type === "number") defaults[field.name] = 0
+      else defaults[field.name] = ""
+    }
+    setContext(prev => {
+      // Merge: keep existing user values, fill in new defaults
+      const merged = { ...defaults }
+      for (const key of Object.keys(prev)) {
+        if (key in merged) merged[key] = prev[key]
+      }
+      return merged
+    })
+  }, [contextSchema])
 
   const result = useMemo(() => {
     try {
-      return assembleGraph(nodes, edges, blocks, context)
-    } catch {
-      return { text: "", blocks: [] as string[], tokenCount: 0, variantId: null }
+      const fullContext = { ...context, _time: { hour: autoMeta.hour, dayOfWeek: autoMeta.dayOfWeek }, _req: { country: autoMeta.country, userId: autoMeta.userId } }
+      return assembleGraph(nodes, edges, blocks, fullContext)
+    } catch (e) {
+      return { text: "", blocks: [] as string[], skippedBlocks: [] as string[], tokenCount: 0, errors: [e instanceof Error ? e.message : "Assembly failed"] }
     }
-  }, [nodes, edges, blocks, context])
+  }, [nodes, edges, blocks, context, autoMeta])
 
   return (
     <div className="border-t border-border bg-card">
@@ -36,16 +62,16 @@ export function PreviewPanel({ nodes, edges, blocks, contextSchema }: PreviewPan
           <span className="font-mono">{result.tokenCount} tokens</span>
           <span>·</span>
           <span>{result.blocks.length} blocks</span>
+          {result.skippedBlocks?.length > 0 && (
+            <>
+              <span>·</span>
+              <span className="text-muted-foreground/60">{result.skippedBlocks.length} skipped</span>
+            </>
+          )}
           {result.blocks.length > 0 && (
             <>
               <span>·</span>
               <span className="text-success">{result.blocks.join(" → ")}</span>
-            </>
-          )}
-          {result.variantId && (
-            <>
-              <span>·</span>
-              <span className="text-amber-400">variant: {result.variantId}</span>
             </>
           )}
         </div>
@@ -98,6 +124,13 @@ export function PreviewPanel({ nodes, edges, blocks, contextSchema }: PreviewPan
                     >
                       {field.values.map((v) => <option key={v} value={v}>{v}</option>)}
                     </select>
+                  ) : field.type === "number" ? (
+                    <input
+                      type="number"
+                      className="mt-1 w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none"
+                      value={context[field.name] ?? 0}
+                      onChange={(e) => setContext({ ...context, [field.name]: parseFloat(e.target.value) || 0 })}
+                    />
                   ) : (
                     <input
                       className="mt-1 w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none"
@@ -115,10 +148,68 @@ export function PreviewPanel({ nodes, edges, blocks, contextSchema }: PreviewPan
                   Click &quot;Schema&quot; in the toolbar to add parameters.
                 </div>
               )}
+              {/* Auto-captured metadata */}
+              <div className="mt-2 border-t border-border/50 pt-2">
+                <button
+                  onClick={() => setAutoMetaOpen(!autoMetaOpen)}
+                  className="flex items-center gap-1 text-[9px] uppercase tracking-wider text-muted-foreground/60 font-semibold hover:text-muted-foreground transition-colors"
+                >
+                  {autoMetaOpen ? <ChevronDown className="h-2.5 w-2.5" /> : <ChevronUp className="h-2.5 w-2.5" />}
+                  Auto-captured (test)
+                </button>
+                {autoMetaOpen && (
+                  <div className="mt-2 space-y-3">
+                    <div>
+                      <label className="text-[10px] text-muted-foreground/60 font-medium">_time.hour</label>
+                      <input
+                        type="number"
+                        className="mt-1 w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none"
+                        value={autoMeta.hour}
+                        onChange={(e) => setAutoMeta({ ...autoMeta, hour: parseFloat(e.target.value) || 0 })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-muted-foreground/60 font-medium">_time.dayOfWeek</label>
+                      <select
+                        className="mt-1 w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none"
+                        value={autoMeta.dayOfWeek}
+                        onChange={(e) => setAutoMeta({ ...autoMeta, dayOfWeek: e.target.value })}
+                      >
+                        {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => <option key={d} value={d}>{d}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-muted-foreground/60 font-medium">_req.country</label>
+                      <input
+                        className="mt-1 w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none"
+                        value={autoMeta.country}
+                        onChange={(e) => setAutoMeta({ ...autoMeta, country: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-muted-foreground/60 font-medium">_req.userId</label>
+                      <input
+                        className="mt-1 w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none"
+                        value={autoMeta.userId}
+                        onChange={(e) => setAutoMeta({ ...autoMeta, userId: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Right: Output */}
-            <div className="flex-1 overflow-y-auto p-3">
+            <div className="flex-1 overflow-y-auto">
+              {result.errors?.length > 0 && (
+                <div className="mx-3 mt-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-2">
+                  <div className="text-[10px] font-semibold text-warning mb-1">Assembly warnings</div>
+                  {result.errors.map((err, i) => (
+                    <div key={i} className="text-[10px] text-warning/80 font-mono">• {err}</div>
+                  ))}
+                </div>
+              )}
+              <div className="p-3">
               {tab === "preview" ? (
                 <pre className="whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-muted-foreground">
                   {result.text || (
@@ -151,8 +242,22 @@ export function PreviewPanel({ nodes, edges, blocks, contextSchema }: PreviewPan
                       </div>
                     ))
                   )}
+                  {result.skippedBlocks?.length > 0 && (
+                    <>
+                      <div className="text-[9px] uppercase tracking-wider text-muted-foreground/50 font-semibold mt-3 mb-1">Skipped</div>
+                      {result.skippedBlocks.map((blockName, i) => (
+                        <div key={`skipped-${blockName}-${i}`} className="rounded-lg border border-border/50 bg-background/50 p-2 opacity-50">
+                          <div className="flex items-center gap-2">
+                            <Blocks className="h-3 w-3 text-muted-foreground/40" />
+                            <span className="text-xs font-medium text-muted-foreground/60">{blockName}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )}
                 </div>
               )}
+              </div>
             </div>
           </div>
         </div>

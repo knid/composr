@@ -43,6 +43,13 @@
       "when": 1743379200000,
       "tag": "0005_add_assembly_id",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1774953011757,
+      "tag": "0006_brave_rafael_vega",
+      "breakpoints": true
     }
   ]
 }

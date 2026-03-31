@@ -21,7 +21,9 @@ interface BlockLookup {
 interface AssemblyResult {
   text: string
   blocks: string[]
+  skippedBlocks: string[]
   tokenCount: number
+  errors: string[]
   variantId: string | null
 }
 
@@ -40,9 +42,17 @@ export function assembleGraph(
 
   const result: string[] = []
   const resolvedBlocks: string[] = []
+  const errors: string[] = []
+  const visited = new Set<string>()
   let variantId: string | null = null
 
   function walk(nodeId: string) {
+    if (visited.has(nodeId)) {
+      errors.push(`Cycle detected at node: ${nodeId}`)
+      return
+    }
+    visited.add(nodeId)
+
     const node = nodeMap.get(nodeId)
     if (!node) return
 
@@ -61,13 +71,19 @@ export function assembleGraph(
           })
           result.push(content)
           resolvedBlocks.push(block.name)
+        } else {
+          errors.push(`Block not found: ${blockId}`)
         }
         break
       }
 
       case "ifBoolean": {
         const field = node.data.field as string
-        const value = Boolean(resolveContextValue(context, field))
+        const resolved = resolveContextValue(context, field)
+        if (resolved === undefined) {
+          errors.push(`IF node '${node.id}' references undefined context field: '${field}'`)
+        }
+        const value = Boolean(resolved)
         const handleId = value ? "true" : "false"
         const matchingEdges = (edgesBySource.get(node.id) ?? []).filter(
           (e) => e.sourceHandle === handleId
@@ -80,7 +96,11 @@ export function assembleGraph(
 
       case "ifSwitch": {
         const field = node.data.field as string
-        const value = String(resolveContextValue(context, field))
+        const resolved = resolveContextValue(context, field)
+        if (resolved === undefined) {
+          errors.push(`IF node '${node.id}' references undefined context field: '${field}'`)
+        }
+        const value = String(resolved)
         const cases = (node.data.cases as string[]) ?? []
         const matchCase = cases.includes(value) ? value : cases[cases.length - 1]
         const matchingEdges = (edgesBySource.get(node.id) ?? []).filter(
@@ -112,7 +132,13 @@ export function assembleGraph(
 
       case "ifExpression": {
         const expression = node.data.expression as string ?? ""
-        const value = evaluateExpression(expression, context)
+        let value: boolean
+        try {
+          value = evaluateExpression(expression, context)
+        } catch (err) {
+          errors.push(`Expression evaluation error in node '${node.id}': ${err instanceof Error ? err.message : String(err)}`)
+          value = false
+        }
         const handleId = value ? "true" : "false"
         const matchingEdges = (edgesBySource.get(node.id) ?? []).filter(
           (e) => e.sourceHandle === handleId
@@ -140,11 +166,25 @@ export function assembleGraph(
   const startNode = nodes.find((n) => n.type === "start")
   if (startNode) walk(startNode.id)
 
+  // Determine which block nodes were skipped (not on the taken path)
+  const allBlockNames = nodes
+    .filter((n) => n.type === "block")
+    .map((n) => {
+      const block = blocks[n.data.blockId as string]
+      return block ? block.name : null
+    })
+    .filter((name): name is string => name !== null)
+  const skippedBlocks = allBlockNames.filter((name) => !resolvedBlocks.includes(name))
+
   const text = result.join("\n\n")
+  const words = text.split(/\s+/).filter((w) => w.length > 0)
+  const tokenCount = Math.round(words.length * 1.3)
   return {
     text,
     blocks: resolvedBlocks,
-    tokenCount: Math.round(text.length / 4),
+    skippedBlocks,
+    tokenCount,
+    errors,
     variantId,
   }
 }

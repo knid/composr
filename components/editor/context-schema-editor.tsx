@@ -10,7 +10,7 @@ import {
 
 export interface ContextField {
   name: string
-  type: "string" | "boolean" | "enum"
+  type: "string" | "boolean" | "enum" | "number"
   values?: string[]
 }
 
@@ -29,7 +29,7 @@ export function ContextSchemaEditor({
 }: ContextSchemaEditorProps) {
   const [fields, setFields] = useState<ContextField[]>(schema)
   const [newName, setNewName] = useState("")
-  const [newType, setNewType] = useState<"string" | "boolean" | "enum">("string")
+  const [newType, setNewType] = useState<"string" | "boolean" | "enum" | "number">("string")
 
   // Sync when opening
   const handleOpenChange = useCallback((next: boolean) => {
@@ -53,7 +53,7 @@ export function ContextSchemaEditor({
     setFields(fields.filter((_, i) => i !== index))
   }, [fields])
 
-  const updateFieldType = useCallback((index: number, type: "string" | "boolean" | "enum") => {
+  const updateFieldType = useCallback((index: number, type: "string" | "boolean" | "enum" | "number") => {
     setFields(fields.map((f, i) => {
       if (i !== index) return f
       return {
@@ -113,10 +113,11 @@ export function ContextSchemaEditor({
                 <span className="text-xs font-medium font-mono flex-1">{field.name}</span>
                 <select
                   value={field.type}
-                  onChange={(e) => updateFieldType(fi, e.target.value as "string" | "boolean" | "enum")}
+                  onChange={(e) => updateFieldType(fi, e.target.value as "string" | "boolean" | "enum" | "number")}
                   className="rounded border border-border bg-background px-2 py-1 text-[10px] text-foreground outline-none"
                 >
                   <option value="string">string</option>
+                  <option value="number">number</option>
                   <option value="boolean">boolean</option>
                   <option value="enum">enum</option>
                 </select>
@@ -172,10 +173,11 @@ export function ContextSchemaEditor({
             />
             <select
               value={newType}
-              onChange={(e) => setNewType(e.target.value as "string" | "boolean" | "enum")}
+              onChange={(e) => setNewType(e.target.value as "string" | "boolean" | "enum" | "number")}
               className="rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none"
             >
               <option value="string">string</option>
+              <option value="number">number</option>
               <option value="boolean">boolean</option>
               <option value="enum">enum</option>
             </select>

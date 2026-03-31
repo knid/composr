@@ -5,8 +5,9 @@ import type { Node } from "@xyflow/react"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { X, Plus, Trash2, FileText, ToggleLeft, List, Percent, Code2, Merge, Play, Flag } from "lucide-react"
+import { X, Plus, Trash2, FileText, ToggleLeft, List, Percent, Code2, Merge, Play, Flag, Save } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { MonacoBlockEditor } from "@/components/editor/monaco-block-editor"
 
 interface BlockInfo {
   id: string
@@ -20,9 +21,10 @@ interface PropertiesPanelProps {
   blocks: BlockInfo[]
   onNodeDataChange: (nodeId: string, data: Record<string, unknown>) => void
   onClose: () => void
+  onBlockSaved?: () => void
 }
 
-export function PropertiesPanel({ node, blocks, onNodeDataChange, onClose }: PropertiesPanelProps) {
+export function PropertiesPanel({ node, blocks, onNodeDataChange, onClose, onBlockSaved }: PropertiesPanelProps) {
   if (!node) return null
 
   return (
@@ -46,6 +48,7 @@ export function PropertiesPanel({ node, blocks, onNodeDataChange, onClose }: Pro
           node={node}
           blocks={blocks}
           onNodeDataChange={onNodeDataChange}
+          onBlockSaved={onBlockSaved}
         />
       </div>
     </div>
@@ -85,17 +88,19 @@ function NodeProperties({
   node,
   blocks,
   onNodeDataChange,
+  onBlockSaved,
 }: {
   node: Node
   blocks: BlockInfo[]
   onNodeDataChange: (nodeId: string, data: Record<string, unknown>) => void
+  onBlockSaved?: () => void
 }) {
   const type = node.type ?? ""
   const data = node.data as Record<string, unknown>
 
   switch (type) {
     case "block":
-      return <BlockProperties nodeId={node.id} data={data} blocks={blocks} onChange={onNodeDataChange} />
+      return <BlockProperties nodeId={node.id} data={data} blocks={blocks} onChange={onNodeDataChange} onBlockSaved={onBlockSaved} />
     case "ifBoolean":
       return <IfBooleanProperties nodeId={node.id} data={data} onChange={onNodeDataChange} />
     case "ifSwitch":
@@ -104,6 +109,8 @@ function NodeProperties({
       return <IfPercentageProperties nodeId={node.id} data={data} onChange={onNodeDataChange} />
     case "ifExpression":
       return <IfExpressionProperties nodeId={node.id} data={data} onChange={onNodeDataChange} />
+    case "merge":
+      return <MergeProperties nodeId={node.id} data={data} onChange={onNodeDataChange} />
     default:
       return (
         <div className="flex flex-col items-center justify-center py-8 text-center">
@@ -127,14 +134,47 @@ function BlockProperties({
   data,
   blocks,
   onChange,
+  onBlockSaved,
 }: {
   nodeId: string
   data: Record<string, unknown>
   blocks: BlockInfo[]
   onChange: (nodeId: string, data: Record<string, unknown>) => void
+  onBlockSaved?: () => void
 }) {
   const blockId = data.blockId as string
   const selectedBlock = blocks.find((b) => b.id === blockId)
+  const [editedContent, setEditedContent] = useState(selectedBlock?.content ?? "")
+  const [blockDirty, setBlockDirty] = useState(false)
+  const [savingBlock, setSavingBlock] = useState(false)
+
+  // Sync when block selection changes
+  useEffect(() => {
+    setEditedContent(selectedBlock?.content ?? "")
+    setBlockDirty(false)
+  }, [selectedBlock?.id, selectedBlock?.content])
+
+  const saveBlock = async () => {
+    if (!blockId) return
+    setSavingBlock(true)
+    try {
+      const res = await fetch(`/api/blocks/${blockId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: editedContent }),
+      })
+      if (res.ok) {
+        setBlockDirty(false)
+        onChange(nodeId, {
+          tokenCount: Math.round(editedContent.split(/\s+/).filter(Boolean).length * 1.3),
+        })
+        onBlockSaved?.()
+      }
+    } catch {
+      // save failed silently
+    }
+    setSavingBlock(false)
+  }
 
   return (
     <div className="space-y-3">
@@ -163,18 +203,34 @@ function BlockProperties({
 
       {selectedBlock && (
         <>
-          <FieldLabel label="Preview">
-            <div className="rounded-md border border-border bg-background/50 p-2">
-              <pre className="whitespace-pre-wrap font-mono text-[10px] leading-relaxed text-muted-foreground max-h-32 overflow-y-auto">
-                {selectedBlock.content.slice(0, 200)}
-                {selectedBlock.content.length > 200 && "..."}
-              </pre>
+          <FieldLabel label="Content">
+            <div className="rounded-md border border-border overflow-hidden" style={{ height: 200 }}>
+              <MonacoBlockEditor
+                value={editedContent}
+                onChange={(val) => {
+                  setEditedContent(val)
+                  setBlockDirty(true)
+                }}
+              />
             </div>
           </FieldLabel>
+
+          {blockDirty && (
+            <Button
+              size="sm"
+              className="w-full gap-1.5"
+              onClick={saveBlock}
+              disabled={savingBlock}
+            >
+              <Save className="h-3 w-3" />
+              {savingBlock ? "Saving..." : "Save Block"}
+            </Button>
+          )}
+
           <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-            <span className="font-mono">{Math.round(selectedBlock.content.length / 4)} tokens</span>
+            <span className="font-mono">{Math.round(editedContent.split(/\s+/).filter(Boolean).length * 1.3)} tokens</span>
             <span className="text-border">|</span>
-            <span>{selectedBlock.content.length} chars</span>
+            <span>{editedContent.length} chars</span>
           </div>
         </>
       )}
@@ -481,6 +537,36 @@ function IfExpressionProperties({
         <code className="text-[8px]">_time.hour, _req.country, _req.userId</code>
         <p className="mt-1">Plus any fields from your context schema.</p>
       </div>
+    </div>
+  )
+}
+
+/* ─── Merge Properties ─── */
+function MergeProperties({
+  nodeId,
+  data,
+  onChange,
+}: {
+  nodeId: string
+  data: Record<string, unknown>
+  onChange: (nodeId: string, data: Record<string, unknown>) => void
+}) {
+  const inputCount = (data.inputCount as number) ?? 2
+  return (
+    <div className="space-y-3">
+      <FieldLabel label="Input handles">
+        <Input
+          type="number"
+          value={inputCount}
+          onChange={(e) => onChange(nodeId, { inputCount: Math.max(2, Math.min(10, parseInt(e.target.value) || 2)) })}
+          min={2}
+          max={10}
+          className="h-8 text-xs"
+        />
+      </FieldLabel>
+      <p className="text-[10px] text-muted-foreground">
+        Number of input branches to merge (2-10).
+      </p>
     </div>
   )
 }

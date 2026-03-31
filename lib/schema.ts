@@ -7,6 +7,7 @@ import {
   boolean,
   timestamp,
   jsonb,
+  index,
 } from "drizzle-orm/pg-core"
 
 // Shared enum for environment
@@ -58,7 +59,9 @@ export const blockVersions = pgTable("block_versions", {
   content: text("content").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   createdBy: text("created_by").notNull(),
-})
+}, (table) => [
+  index("idx_block_versions_block_id").on(table.blockId),
+])
 
 // compositions
 export const compositions = pgTable("compositions", {
@@ -88,7 +91,9 @@ export const compositionVersions = pgTable("composition_versions", {
   contextSchema: jsonb("context_schema").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   createdBy: text("created_by").notNull(),
-})
+}, (table) => [
+  index("idx_comp_versions_composition_id").on(table.compositionId),
+])
 
 // deployments
 export const deployments = pgTable("deployments", {
@@ -100,7 +105,9 @@ export const deployments = pgTable("deployments", {
   version: integer("version").notNull(),
   deployedAt: timestamp("deployed_at").notNull().defaultNow(),
   deployedBy: text("deployed_by").notNull(),
-})
+}, (table) => [
+  index("idx_deployments_composition_env").on(table.compositionId, table.environment),
+])
 
 // assembly_logs
 export const assemblyLogs = pgTable("assembly_logs", {
@@ -117,7 +124,9 @@ export const assemblyLogs = pgTable("assembly_logs", {
   tokenCount: integer("token_count"),
   assemblyId: text("assembly_id"),
   assembledAt: timestamp("assembled_at").notNull().defaultNow(),
-})
+}, (table) => [
+  index("idx_assembly_logs_composition_id").on(table.compositionId),
+])
 
 // scores
 export const scores = pgTable("scores", {
@@ -142,7 +151,9 @@ export const scores = pgTable("scores", {
   overallScore: integer("overall_score"),
   evalStatus: text("eval_status").notNull().default("pending"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-})
+}, (table) => [
+  index("idx_scores_composition_id").on(table.compositionId),
+])
 
 // audit_logs
 export const auditLogs = pgTable("audit_logs", {
