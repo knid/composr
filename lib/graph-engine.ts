@@ -22,6 +22,7 @@ interface AssemblyResult {
   text: string
   blocks: string[]
   tokenCount: number
+  variantId: string | null
 }
 
 export function assembleGraph(
@@ -39,6 +40,7 @@ export function assembleGraph(
 
   const result: string[] = []
   const resolvedBlocks: string[] = []
+  let variantId: string | null = null
 
   function walk(nodeId: string) {
     const node = nodeMap.get(nodeId)
@@ -97,6 +99,7 @@ export function assembleGraph(
         const selectedIndex = selectVariant(seed, weights)
         const selectedVariant = variants[selectedIndex]
         if (selectedVariant) {
+          variantId = selectedVariant.name
           const matchingEdges = (edgesBySource.get(node.id) ?? []).filter(
             (e) => e.sourceHandle === selectedVariant.name
           )
@@ -142,6 +145,7 @@ export function assembleGraph(
     text,
     blocks: resolvedBlocks,
     tokenCount: Math.round(text.length / 4),
+    variantId,
   }
 }
 

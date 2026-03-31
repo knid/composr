@@ -1,12 +1,14 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import {
   ReactFlow,
   Background,
   Controls,
   MiniMap,
+  Handle,
+  Position,
   addEdge,
   useNodesState,
   useEdgesState,
@@ -36,9 +38,14 @@ interface PipelineEditorProps {
   compositions: CompositionInfo[]
 }
 
-function CompositionNode({ data }: { data: { label: string; version: number; blockCount: number } }) {
+function CompositionNode({ data }: { data: { label: string; version: number; blockCount: number; compositionId?: string } }) {
   return (
-    <div className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 min-w-[160px]">
+    <div className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 min-w-[180px] relative">
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!w-2.5 !h-2.5 !bg-primary/60 !border-primary/30"
+      />
       <div className="flex items-center gap-2 mb-1">
         <GitBranch className="h-3.5 w-3.5 text-primary/60" />
         <span className="text-xs font-semibold text-foreground">{data.label}</span>
@@ -48,11 +55,46 @@ function CompositionNode({ data }: { data: { label: string; version: number; blo
         <span>·</span>
         <span>{data.blockCount} blocks</span>
       </div>
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!w-2.5 !h-2.5 !bg-primary/60 !border-primary/30"
+      />
     </div>
   )
 }
 
-const nodeTypes = { compositionNode: CompositionNode }
+function PipelineStartNode() {
+  return (
+    <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-success bg-success/10">
+      <span className="text-[9px] font-bold text-success">IN</span>
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!w-2.5 !h-2.5 !bg-success !border-success/50"
+      />
+    </div>
+  )
+}
+
+function PipelineEndNode() {
+  return (
+    <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-destructive bg-destructive/10">
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!w-2.5 !h-2.5 !bg-destructive !border-destructive/50"
+      />
+      <span className="text-[9px] font-bold text-destructive">OUT</span>
+    </div>
+  )
+}
+
+const nodeTypes = {
+  compositionNode: CompositionNode,
+  pipelineStart: PipelineStartNode,
+  pipelineEnd: PipelineEndNode,
+}
 
 function PipelineEditorInner({
   id,
@@ -67,6 +109,36 @@ function PipelineEditorInner({
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
 
+  // Ensure start/end nodes exist
+  useEffect(() => {
+    const hasStart = nodes.some((n) => n.type === "pipelineStart")
+    const hasEnd = nodes.some((n) => n.type === "pipelineEnd")
+    if (!hasStart || !hasEnd) {
+      const newNodes: Node[] = []
+      if (!hasStart) {
+        newNodes.push({
+          id: "pipeline-start",
+          type: "pipelineStart",
+          position: { x: 50, y: 200 },
+          data: {},
+          deletable: false,
+        })
+      }
+      if (!hasEnd) {
+        newNodes.push({
+          id: "pipeline-end",
+          type: "pipelineEnd",
+          position: { x: 800, y: 200 },
+          data: {},
+          deletable: false,
+        })
+      }
+      if (newNodes.length > 0) {
+        setNodes((nds) => [...nds, ...newNodes])
+      }
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   const onConnect = useCallback(
     (connection: Connection) => {
       setEdges((eds) => addEdge(connection, eds))
@@ -80,7 +152,7 @@ function PipelineEditorInner({
       id: `comp-${comp.id}-${Date.now()}`,
       type: "compositionNode",
       position: { x: 100 + Math.random() * 300, y: 100 + Math.random() * 200 },
-      data: { label: comp.name, version: comp.version, blockCount: comp.blockCount },
+      data: { label: comp.name, version: comp.version, blockCount: comp.blockCount, compositionId: comp.id },
     }
     setNodes((nds) => [...nds, newNode])
     setDirty(true)
@@ -166,10 +238,20 @@ function PipelineEditorInner({
             nodeTypes={nodeTypes}
             fitView
             fitViewOptions={{ padding: 0.3 }}
+            connectionLineStyle={{ stroke: "#3b82f6", strokeWidth: 2 }}
+            defaultEdgeOptions={{
+              type: "smoothstep",
+              animated: true,
+              style: { stroke: "#52525b", strokeWidth: 2 },
+            }}
           >
-            <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
-            <Controls />
-            <MiniMap zoomable pannable />
+            <Background variant={BackgroundVariant.Dots} gap={24} size={1} color="#27272a" />
+            <Controls className="!bg-card !border-border !rounded-lg [&>button]:!bg-card [&>button]:!border-border [&>button]:!text-foreground" />
+            <MiniMap
+              className="!bg-card !border-border !rounded-lg"
+              nodeColor="#27272a"
+              maskColor="rgba(0,0,0,0.7)"
+            />
           </ReactFlow>
         </div>
       </div>

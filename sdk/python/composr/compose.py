@@ -43,6 +43,7 @@ def compose(config: SDKConfig, composition_name: str, context: dict[str, Any] | 
 
     parts: list[str] = []
     resolved_blocks: list[str] = []
+    variant_id: str | None = None
 
     def resolve(ctx: dict[str, Any], path: str) -> Any:
         current: Any = ctx
@@ -99,6 +100,8 @@ def compose(config: SDKConfig, composition_name: str, context: dict[str, Any] | 
             if weights:
                 idx = select_variant(seed, weights)
                 selected = variants[idx]
+                nonlocal variant_id
+                variant_id = selected["name"]
                 for e in edges_by_source.get(node_id, []):
                     if e.get("sourceHandle") == selected["name"]:
                         walk(e["target"])
@@ -130,7 +133,7 @@ def compose(config: SDKConfig, composition_name: str, context: dict[str, Any] | 
         id=f"asm_{int(time.time())}_{rand_suffix}",
         text=text,
         version=f"v{comp['version']}",
-        variant_id=None,
+        variant_id=variant_id,
         token_count=len(text) // 4,
         blocks=resolved_blocks,
         composition_name=composition_name,

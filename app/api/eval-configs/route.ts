@@ -11,24 +11,43 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const compositionId = searchParams.get("compositionId")
 
-  if (!compositionId) {
-    return NextResponse.json({ error: "compositionId query param is required" }, { status: 400 })
+  if (compositionId) {
+    // Verify the composition belongs to this org
+    const [comp] = await db
+      .select()
+      .from(compositions)
+      .where(and(eq(compositions.id, compositionId), eq(compositions.teamId, orgId)))
+
+    if (!comp) {
+      return NextResponse.json({ error: "Composition not found" }, { status: 404 })
+    }
+
+    const configs = await db
+      .select()
+      .from(evalConfigs)
+      .where(eq(evalConfigs.compositionId, compositionId))
+
+    return NextResponse.json(configs)
   }
 
-  // Verify the composition belongs to this org
-  const [comp] = await db
-    .select()
-    .from(compositions)
-    .where(and(eq(compositions.id, compositionId), eq(compositions.teamId, orgId)))
-
-  if (!comp) {
-    return NextResponse.json({ error: "Composition not found" }, { status: 404 })
-  }
-
+  // Return all eval configs for compositions belonging to this org
   const configs = await db
-    .select()
+    .select({
+      id: evalConfigs.id,
+      compositionId: evalConfigs.compositionId,
+      scorerName: evalConfigs.scorerName,
+      type: evalConfigs.type,
+      enabled: evalConfigs.enabled,
+      sampleRate: evalConfigs.sampleRate,
+      judgeModel: evalConfigs.judgeModel,
+      judgePrompt: evalConfigs.judgePrompt,
+      weight: evalConfigs.weight,
+      createdAt: evalConfigs.createdAt,
+      updatedAt: evalConfigs.updatedAt,
+    })
     .from(evalConfigs)
-    .where(eq(evalConfigs.compositionId, compositionId))
+    .innerJoin(compositions, eq(evalConfigs.compositionId, compositions.id))
+    .where(eq(compositions.teamId, orgId))
 
   return NextResponse.json(configs)
 }
@@ -38,7 +57,7 @@ export async function POST(req: Request) {
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const body = await req.json()
-  const { compositionId, scorerName, sampleRate, judgeModel, judgePrompt, weight } = body
+  const { compositionId, scorerName, type, sampleRate, judgeModel, judgePrompt, weight } = body
 
   if (!compositionId || !scorerName) {
     return NextResponse.json(
@@ -62,6 +81,7 @@ export async function POST(req: Request) {
     .values({
       compositionId,
       scorerName,
+      ...(type !== undefined ? { type } : {}),
       ...(sampleRate !== undefined ? { sampleRate } : {}),
       ...(judgeModel !== undefined ? { judgeModel } : {}),
       ...(judgePrompt !== undefined ? { judgePrompt } : {}),

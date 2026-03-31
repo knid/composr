@@ -8,6 +8,7 @@ import { StatCard } from "@/components/dashboard/stat-card"
 import { mean } from "@/lib/statistics"
 import { Badge } from "@/components/ui/badge"
 import { RunEvalButton } from "@/components/scoring/run-eval-button"
+import { ScorerManager } from "@/components/scoring/scorer-manager"
 import { LineChartCard } from "@/components/charts/line-chart-card"
 
 export const dynamic = "force-dynamic"
@@ -152,6 +153,10 @@ export default async function ScoringPage() {
           </div>
         </>
       )}
+
+      <div className="mt-8">
+        <ScorerManager compositions={teamComps.map((c) => ({ id: c.id, name: c.name }))} />
+      </div>
     </div>
   )
 }

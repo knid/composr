@@ -22,7 +22,7 @@ interface Block {
   updatedAt: string
 }
 
-export function BlockList({ initialBlocks }: { initialBlocks: Block[] }) {
+export function BlockList({ initialBlocks, usageMap }: { initialBlocks: Block[]; usageMap: Record<string, string[]> }) {
   const [blocks, setBlocks] = useState(initialBlocks)
   const [search, setSearch] = useState("")
   const [activeTags, setActiveTags] = useState<Set<string>>(new Set())
@@ -162,7 +162,7 @@ export function BlockList({ initialBlocks }: { initialBlocks: Block[] }) {
       )}
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.map((block) => (
-          <BlockCard key={block.id} block={block} onClick={() => openEdit(block)} />
+          <BlockCard key={block.id} block={block} onClick={() => openEdit(block)} usedIn={usageMap[block.id] ?? []} />
         ))}
         {filtered.length === 0 && (
           <p className="col-span-full py-12 text-center text-sm text-muted-foreground">

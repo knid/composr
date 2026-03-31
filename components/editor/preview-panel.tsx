@@ -20,7 +20,7 @@ export function PreviewPanel({ nodes, edges, blocks, contextSchema }: PreviewPan
     try {
       return assembleGraph(nodes, edges, blocks, context)
     } catch {
-      return { text: "", blocks: [] as string[], tokenCount: 0 }
+      return { text: "", blocks: [] as string[], tokenCount: 0, variantId: null }
     }
   }, [nodes, edges, blocks, context])
 
@@ -40,6 +40,12 @@ export function PreviewPanel({ nodes, edges, blocks, contextSchema }: PreviewPan
             <>
               <span>·</span>
               <span className="text-success">{result.blocks.join(" → ")}</span>
+            </>
+          )}
+          {result.variantId && (
+            <>
+              <span>·</span>
+              <span className="text-amber-400">variant: {result.variantId}</span>
             </>
           )}
         </div>

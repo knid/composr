@@ -1,7 +1,7 @@
 import { db } from "@/lib/db"
-import { compositions } from "@/lib/schema"
+import { compositions, scores, assemblyLogs } from "@/lib/schema"
 import { auth } from "@clerk/nextjs/server"
-import { eq, desc } from "drizzle-orm"
+import { eq, desc, gte, and, isNotNull } from "drizzle-orm"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { GitBranch } from "lucide-react"
@@ -19,6 +19,30 @@ export default async function CompositionsPage() {
     .from(compositions)
     .where(eq(compositions.teamId, orgId))
     .orderBy(desc(compositions.updatedAt))
+
+  const allScores = await db
+    .select()
+    .from(scores)
+    .where(and(eq(scores.teamId, orgId), isNotNull(scores.overallScore)))
+
+  const scoreByComp = new Map<string, number[]>()
+  for (const s of allScores) {
+    if (s.overallScore === null) continue
+    const arr = scoreByComp.get(s.compositionId) ?? []
+    arr.push(s.overallScore)
+    scoreByComp.set(s.compositionId, arr)
+  }
+
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
+  const recentAssemblies = await db
+    .select()
+    .from(assemblyLogs)
+    .where(and(eq(assemblyLogs.teamId, orgId), gte(assemblyLogs.assembledAt, oneDayAgo)))
+
+  const throughputByComp = new Map<string, number>()
+  for (const a of recentAssemblies) {
+    throughputByComp.set(a.compositionId, (throughputByComp.get(a.compositionId) ?? 0) + 1)
+  }
 
   return (
     <div>
@@ -43,6 +67,19 @@ export default async function CompositionsPage() {
               </div>
               <p className="mt-1.5 text-xs text-muted-foreground">
                 {blockCount} blocks · {ifCount} IF nodes
+                {(() => {
+                  const scoreArr = scoreByComp.get(comp.id)
+                  const avgScore = scoreArr && scoreArr.length > 0
+                    ? Math.round(scoreArr.reduce((a: number, b: number) => a + b, 0) / scoreArr.length)
+                    : null
+                  const throughput = throughputByComp.get(comp.id) ?? 0
+                  return (
+                    <>
+                      {avgScore !== null && <> · <span className="text-success">{avgScore}/100</span></>}
+                      {throughput > 0 && <> · {throughput}/24h</>}
+                    </>
+                  )
+                })()}
               </p>
             </Link>
           )

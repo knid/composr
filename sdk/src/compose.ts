@@ -36,6 +36,7 @@ export function compose(
 
   const parts: string[] = []
   const resolvedBlocks: string[] = []
+  let variantId: string | null = null
 
   function resolve(ctx: Record<string, any>, path: string): any {
     return path.split(".").reduce((o: any, k: string) => o?.[k], ctx)
@@ -77,6 +78,7 @@ export function compose(
       const selectedIndex = selectVariant(seed, weights)
       const selectedVariant = variants[selectedIndex]
       if (selectedVariant) {
+        variantId = selectedVariant.name
         for (const e of (edgesBySource.get(node.id) ?? []).filter((e: any) => e.sourceHandle === selectedVariant.name)) {
           walk(e.target)
         }
@@ -105,7 +107,7 @@ export function compose(
     id: `asm_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     text,
     version: `v${comp.version}`,
-    variantId: null,
+    variantId,
     tokenCount: Math.round(text.length / 4),
     blocks: resolvedBlocks,
     compositionName,

@@ -14,9 +14,10 @@ interface BlockCardProps {
     updatedAt: string
   }
   onClick: () => void
+  usedIn: string[]
 }
 
-export function BlockCard({ block, onClick }: BlockCardProps) {
+export function BlockCard({ block, onClick, usedIn }: BlockCardProps) {
   const tokenEstimate = Math.round(block.content.length / 4)
 
   return (
@@ -36,6 +37,9 @@ export function BlockCard({ block, onClick }: BlockCardProps) {
       )}
       <div className="mt-2 flex items-center gap-2">
         <span className="font-mono text-[10px] text-muted-foreground">{tokenEstimate} tokens</span>
+        <span className="text-[10px] text-muted-foreground">
+          {usedIn.length === 0 ? "unused" : `${usedIn.length} composition${usedIn.length !== 1 ? "s" : ""}`}
+        </span>
         {(block.tags as string[]).map((tag) => (
           <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0">
             {tag}

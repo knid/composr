@@ -1,10 +1,11 @@
 import { db } from "@/lib/db"
-import { scores, assemblyLogs } from "@/lib/schema"
-import { eq } from "drizzle-orm"
+import { scores, assemblyLogs, evalConfigs } from "@/lib/schema"
+import { eq, and, desc } from "drizzle-orm"
 import { NextResponse } from "next/server"
 import { checkRateLimit } from "@/lib/rate-limit"
 import { trackUsage } from "@/lib/usage"
 import { authenticateSDK } from "@/lib/auth-sdk"
+import { runEval, runStructuredOutputEval, runCodeEval } from "@/lib/eval-runner"
 
 export async function POST(req: Request) {
   const apiKey = await authenticateSDK(req)
@@ -77,8 +78,82 @@ export async function POST(req: Request) {
       resolvedBlocks: body.resolvedBlocks ?? [],
       variantId: variantId ?? null,
       tokenCount: body.tokenCount ?? null,
+      assemblyId: assemblyId ?? null,
     })
   }
 
+  // Trigger auto-eval asynchronously (non-blocking)
+  void triggerAutoEval(score.id, apiKey.teamId, compositionId, input, output)
+
   return NextResponse.json({ id: score.id, evalStatus: score.evalStatus })
+}
+
+async function triggerAutoEval(
+  scoreId: string,
+  teamId: string,
+  compositionId: string,
+  input: string | null,
+  output: string | null,
+) {
+  if (!input || !output) return
+
+  try {
+    const configs = await db
+      .select()
+      .from(evalConfigs)
+      .where(and(
+        eq(evalConfigs.compositionId, compositionId),
+        eq(evalConfigs.enabled, true),
+      ))
+
+    if (configs.length === 0) return
+
+    const roll = Math.floor(Math.random() * 100) + 1
+    const configsToRun = configs.filter(c => roll <= c.sampleRate)
+    if (configsToRun.length === 0) {
+      await db.update(scores).set({ evalStatus: "skipped" }).where(eq(scores.id, scoreId))
+      return
+    }
+
+    const [assemblyLog] = await db
+      .select()
+      .from(assemblyLogs)
+      .where(eq(assemblyLogs.compositionId, compositionId))
+      .orderBy(desc(assemblyLogs.assembledAt))
+      .limit(1)
+
+    const systemPrompt = assemblyLog ? "Composition: " + compositionId : ""
+
+    const autoScores: Record<string, { score: number; reasoning: string }> = {}
+
+    for (const config of configsToRun) {
+      let result
+      if (config.type === "structured_output") {
+        result = runStructuredOutputEval(output)
+      } else if (config.type === "code") {
+        result = runCodeEval(config.judgePrompt ?? "", input, output)
+      } else {
+        result = await runEval(
+          config.scorerName,
+          { input, output, systemPrompt },
+          config.judgeModel,
+          config.judgePrompt ?? undefined,
+        )
+      }
+      autoScores[config.scorerName] = { score: result.score, reasoning: result.reasoning }
+    }
+
+    const scoreValues = Object.values(autoScores).map(s => s.score)
+    const overallScore = scoreValues.length > 0
+      ? Math.round(scoreValues.reduce((a, b) => a + b, 0) / scoreValues.length)
+      : null
+
+    await db.update(scores).set({
+      autoScores,
+      overallScore,
+      evalStatus: "completed",
+    }).where(eq(scores.id, scoreId))
+  } catch {
+    await db.update(scores).set({ evalStatus: "failed" }).where(eq(scores.id, scoreId)).catch(() => {})
+  }
 }

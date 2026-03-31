@@ -166,6 +166,10 @@ describe("assembleGraph", () => {
     // Exactly one variant should be selected (not both)
     expect(firstResult.blocks).toHaveLength(1)
     expect(["role", "auth-rules"]).toContain(firstResult.blocks[0])
+
+    // variantId should be set to the selected variant name
+    expect(firstResult.variantId).toBeTruthy()
+    expect(["control", "treatment"]).toContain(firstResult.variantId)
   })
 
   it("evaluates expression IF node", () => {
@@ -185,6 +189,11 @@ describe("assembleGraph", () => {
 
     const result2 = assembleGraph(nodes, edges, blocks, { projectType: "mobile", _time: { hour: 10 } })
     expect(result2.blocks).toEqual([])
+  })
+
+  it("returns null variantId when no percentage node is used", () => {
+    const result = assembleGraph(linearGraph.nodes, linearGraph.edges, blocks, { projectType: "web" })
+    expect(result.variantId).toBeNull()
   })
 
   it("supports nested context paths", () => {

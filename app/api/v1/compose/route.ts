@@ -100,15 +100,16 @@ export async function POST(req: Request) {
     environment: apiKey.environment,
     context: fullContext,
     resolvedBlocks: result.blocks,
-    variantId: null,
+    variantId: result.variantId,
     tokenCount: result.tokenCount,
+    assemblyId,
   })
 
   return NextResponse.json({
     id: assemblyId,
     text: result.text,
     version: `v${activeVersion}`,
-    variantId: null,
+    variantId: result.variantId,
     tokenCount: result.tokenCount,
     blocks: result.blocks,
     compositionName: comp.name,

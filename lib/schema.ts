@@ -115,6 +115,7 @@ export const assemblyLogs = pgTable("assembly_logs", {
   resolvedBlocks: jsonb("resolved_blocks").notNull(),
   variantId: text("variant_id"),
   tokenCount: integer("token_count"),
+  assemblyId: text("assembly_id"),
   assembledAt: timestamp("assembled_at").notNull().defaultNow(),
 })
 
