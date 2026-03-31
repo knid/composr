@@ -50,7 +50,9 @@ export function BlockList({ initialBlocks, usageMap }: { initialBlocks: Block[];
   const allTags = Array.from(new Set(blocks.flatMap((b) => b.tags ?? [])))
 
   const filtered = blocks.filter((b) => {
-    const matchesSearch = b.name.toLowerCase().includes(search.toLowerCase())
+    const matchesSearch = !search || [b.name, b.description, b.content]
+      .filter(Boolean)
+      .some(field => field!.toLowerCase().includes(search.toLowerCase()))
     const matchesTags = activeTags.size === 0 || (b.tags ?? []).some((t) => activeTags.has(t))
     const matchesKind = kindFilter === "all" || (b.kind ?? "prompt") === kindFilter
     return matchesSearch && matchesTags && matchesKind
@@ -149,7 +151,7 @@ export function BlockList({ initialBlocks, usageMap }: { initialBlocks: Block[];
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search blocks..."
+            placeholder="Search by name, description, or content..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
