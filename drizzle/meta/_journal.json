@@ -50,6 +50,13 @@
       "when": 1774953011757,
       "tag": "0006_brave_rafael_vega",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1774965208501,
+      "tag": "0007_charming_norman_osborn",
+      "breakpoints": true
     }
   ]
 }

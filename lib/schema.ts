@@ -199,6 +199,18 @@ export const usageRecords = pgTable("usage_records", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 })
 
+// provider_keys — LLM provider API keys (encrypted)
+export const providerKeys = pgTable("provider_keys", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  teamId: text("team_id")
+    .notNull()
+    .references(() => teams.id),
+  provider: text("provider").notNull(), // "anthropic" | "openai"
+  encryptedKey: text("encrypted_key").notNull(),
+  keyPrefix: text("key_prefix").notNull(), // "sk-ant-...4f2a"
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+})
+
 // pipelines
 export const pipelines = pgTable("pipelines", {
   id: uuid("id").primaryKey().defaultRandom(),
