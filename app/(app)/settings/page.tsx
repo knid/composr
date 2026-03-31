@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { OrganizationProfile } from "@clerk/nextjs"
+import { dark } from "@clerk/themes"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Key, Copy, Plus, Trash2 } from "lucide-react"
@@ -105,6 +107,59 @@ const result = await pk.compose('builder', {
 
 console.log(result.text) // assembled prompt`}
         </pre>
+      </section>
+
+      <section className="mb-8">
+        <h2 className="text-sm font-semibold mb-3">Team Members</h2>
+        <div className="rounded-lg border border-border overflow-hidden">
+          <OrganizationProfile
+            appearance={{
+              baseTheme: dark,
+              elements: {
+                rootBox: "w-full",
+                cardBox: "shadow-none w-full",
+                navbar: "hidden",
+                pageScrollBox: "p-0",
+              },
+            }}
+            routing="hash"
+          />
+        </div>
+      </section>
+
+      <section className="mb-8">
+        <h2 className="text-sm font-semibold mb-3">Environments</h2>
+        <div className="flex items-center gap-3">
+          {(["dev", "staging", "prod"] as const).map((env, i) => (
+            <div key={env} className="flex items-center gap-3">
+              <div className="rounded-lg border border-border bg-card px-4 py-3 text-center">
+                <div className={`h-2 w-2 rounded-full mx-auto mb-1.5 ${
+                  env === "prod" ? "bg-red-500" : env === "staging" ? "bg-yellow-500" : "bg-green-500"
+                }`} />
+                <div className="text-xs font-medium">{env}</div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">
+                  {env === "dev" ? "Edit here" : env === "staging" ? "Test here" : "Live traffic"}
+                </div>
+              </div>
+              {i < 2 && (
+                <span className="text-muted-foreground text-xs">→</span>
+              )}
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-[11px] text-muted-foreground">
+          Use the Deploy button in the composition editor to promote versions between environments.
+        </p>
+      </section>
+
+      <section className="mb-8">
+        <h2 className="text-sm font-semibold mb-3">Billing</h2>
+        <div className="rounded-lg border border-dashed border-border bg-card p-6 text-center">
+          <div className="text-sm font-medium">Free Tier</div>
+          <div className="mt-1 text-[11px] text-muted-foreground">
+            You&apos;re on the free plan. Billing and usage tiers coming soon.
+          </div>
+        </div>
       </section>
     </div>
   )
