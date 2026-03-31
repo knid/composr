@@ -9,6 +9,9 @@ import { PreviewPanel } from "@/components/editor/preview-panel"
 import { TestPanel } from "@/components/editor/test-panel"
 import { ContextSchemaEditor, type ContextField } from "@/components/editor/context-schema-editor"
 import { EvalConfigPanel } from "./eval-config-panel"
+import { VersionDiff } from "@/components/editor/version-diff"
+import { diffLines } from "@/lib/diff"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Save, Trash2, Rocket, FlaskConical, Braces, Eye, History, LayoutGrid, Play } from "lucide-react"
 import { toast } from "sonner"
@@ -62,6 +65,10 @@ export function CompositionEditor({
   const [historyOpen, setHistoryOpen] = useState(false)
   const [compVersions, setCompVersions] = useState<Array<{ version: number; graph: any; contextSchema: any; createdAt: string }>>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
+  const [compareVersions, setCompareVersions] = useState<[number, number] | null>(null)
+  const [diffResult, setDiffResult] = useState<Array<{ type: "added" | "removed" | "unchanged"; text: string }> | null>(null)
+  const [loadingDiff, setLoadingDiff] = useState(false)
+  const [selectedForCompare, setSelectedForCompare] = useState<number[]>([])
 
   const graphRef = useRef<{ nodes: Node[]; edges: Edge[] }>({
     nodes: initialNodes,
@@ -211,6 +218,37 @@ export function CompositionEditor({
       const data = await res.json()
       toast.error(data.error ?? "Rollback failed")
     }
+  }
+
+  async function compareSelectedVersions(v1: number, v2: number) {
+    const [older, newer] = v1 < v2 ? [v1, v2] : [v2, v1]
+    setCompareVersions([older, newer])
+    setLoadingDiff(true)
+    setDiffResult(null)
+
+    try {
+      const olderVersion = compVersions.find((v) => v.version === older)
+      const newerVersion = compVersions.find((v) => v.version === newer)
+      if (!olderVersion || !newerVersion) return
+
+      const [olderRes, newerRes] = await Promise.all([
+        fetch(`/api/compositions/${id}/assemble`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ graph: olderVersion.graph }),
+        }).then((r) => r.json()),
+        fetch(`/api/compositions/${id}/assemble`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ graph: newerVersion.graph }),
+        }).then((r) => r.json()),
+      ])
+
+      setDiffResult(diffLines(olderRes.text, newerRes.text))
+    } catch {
+      setDiffResult(null)
+    }
+    setLoadingDiff(false)
   }
 
   /* Deploy */
@@ -402,50 +440,100 @@ export function CompositionEditor({
         onOpenChange={setEvalOpen}
       />
 
-      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
-        <DialogContent>
+      <Dialog open={historyOpen} onOpenChange={(open) => {
+        setHistoryOpen(open)
+        if (!open) { setCompareVersions(null); setDiffResult(null); setSelectedForCompare([]) }
+      }}>
+        <DialogContent className={compareVersions ? "max-w-3xl" : ""}>
           <DialogHeader>
-            <DialogTitle>Version History</DialogTitle>
+            <DialogTitle>
+              {compareVersions ? `Comparing v${compareVersions[0]} → v${compareVersions[1]}` : "Version History"}
+            </DialogTitle>
           </DialogHeader>
-          {loadingHistory ? (
+
+          {compareVersions && diffResult ? (
+            <div className="space-y-3">
+              <VersionDiff
+                diff={diffResult}
+                leftLabel={`v${compareVersions[0]}`}
+                rightLabel={`v${compareVersions[1]}`}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => { setCompareVersions(null); setDiffResult(null); setSelectedForCompare([]) }}
+              >
+                Back to history
+              </Button>
+            </div>
+          ) : compareVersions && loadingDiff ? (
+            <p className="text-sm text-muted-foreground">Computing diff...</p>
+          ) : loadingHistory ? (
             <p className="text-sm text-muted-foreground">Loading...</p>
           ) : compVersions.length === 0 ? (
             <p className="text-sm text-muted-foreground">No version history available.</p>
           ) : (
-            <div className="space-y-2 max-h-[400px] overflow-y-auto">
-              {compVersions.map((v) => {
-                const nodeCount = v.graph?.nodes?.length ?? 0
-                const blockCount = v.graph?.nodes?.filter((n: any) => n.type === "block").length ?? 0
-                return (
-                  <div
-                    key={v.version}
-                    className="flex items-center justify-between rounded-lg border border-border bg-card p-3"
-                  >
-                    <div>
+            <div className="space-y-2">
+              <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                {compVersions.map((v) => {
+                  const nodeCount = v.graph?.nodes?.length ?? 0
+                  const blockCount = v.graph?.nodes?.filter((n: any) => n.type === "block").length ?? 0
+                  const isSelected = selectedForCompare.includes(v.version)
+                  return (
+                    <div
+                      key={v.version}
+                      className={cn(
+                        "flex items-center justify-between rounded-lg border bg-card p-3",
+                        isSelected ? "border-primary" : "border-border"
+                      )}
+                    >
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">v{v.version}</span>
-                        {v.version === version && (
-                          <span className="rounded bg-success/10 px-1.5 py-0.5 text-[10px] text-success font-medium">
-                            current
-                          </span>
-                        )}
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => {
+                            setSelectedForCompare((prev) => {
+                              if (prev.includes(v.version)) return prev.filter((x) => x !== v.version)
+                              if (prev.length >= 2) return [prev[1], v.version]
+                              return [...prev, v.version]
+                            })
+                          }}
+                          className="rounded"
+                        />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">v{v.version}</span>
+                            {v.version === version && (
+                              <span className="rounded bg-success/10 px-1.5 py-0.5 text-[10px] text-success font-medium">
+                                current
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground mt-0.5">
+                            {new Date(v.createdAt).toLocaleString()} · {blockCount} blocks · {nodeCount} nodes
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-[11px] text-muted-foreground mt-0.5">
-                        {new Date(v.createdAt).toLocaleString()} · {blockCount} blocks · {nodeCount} nodes
-                      </div>
+                      {v.version !== version && (
+                        <Button size="sm" variant="outline" onClick={() => rollbackTo(v.version)}>
+                          Restore
+                        </Button>
+                      )}
                     </div>
-                    {v.version !== version && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => rollbackTo(v.version)}
-                      >
-                        Restore
-                      </Button>
-                    )}
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
+              {selectedForCompare.length === 2 && (
+                <Button
+                  size="sm"
+                  onClick={() => compareSelectedVersions(selectedForCompare[0], selectedForCompare[1])}
+                >
+                  Compare v{Math.min(...selectedForCompare)} → v{Math.max(...selectedForCompare)}
+                </Button>
+              )}
+              {selectedForCompare.length === 1 && (
+                <p className="text-xs text-muted-foreground">Select one more version to compare</p>
+              )}
             </div>
           )}
         </DialogContent>
