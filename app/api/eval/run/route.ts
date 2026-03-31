@@ -2,7 +2,7 @@ import { db } from "@/lib/db"
 import { scores, evalConfigs } from "@/lib/schema"
 import { eq, and } from "drizzle-orm"
 import { NextResponse } from "next/server"
-import { runEval } from "@/lib/eval-runner"
+import { runEval, runStructuredOutputEval, runCodeEval, runCompositeEval } from "@/lib/eval-runner"
 
 export async function POST(req: Request) {
   const body = await req.json()
@@ -12,7 +12,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "scoreId is required" }, { status: 400 })
   }
 
-  // Look up the score row
   const [score] = await db
     .select()
     .from(scores)
@@ -22,7 +21,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Score not found" }, { status: 404 })
   }
 
-  // Get eval configs for this composition
   const configs = await db
     .select()
     .from(evalConfigs)
@@ -34,7 +32,6 @@ export async function POST(req: Request) {
     )
 
   if (configs.length === 0) {
-    // No configs — mark as skipped
     await db
       .update(scores)
       .set({ evalStatus: "skipped" })
@@ -52,19 +49,32 @@ export async function POST(req: Request) {
   const autoScores: Record<string, { score: number; reasoning: string; error?: string }> = {}
   const weightedScores: { score: number; weight: number }[] = []
 
+  // Run non-composite scorers first
   for (const config of configs) {
-    // Check sample rate: only run if random % < sampleRate
-    const rand = Math.random() * 100
-    if (rand >= config.sampleRate) {
-      continue
-    }
+    if ((config.type ?? "llm_judge") === "composite") continue
 
-    const result = await runEval(
-      config.scorerName,
-      evalInput,
-      config.judgeModel ?? undefined,
-      config.judgePrompt ?? undefined
-    )
+    const rand = Math.random() * 100
+    if (rand >= config.sampleRate) continue
+
+    let result
+
+    if (config.scorerName === "structured_output") {
+      result = runStructuredOutputEval(evalInput.output)
+    } else if ((config.type ?? "llm_judge") === "code") {
+      result = runCodeEval(
+        config.judgePrompt ?? "",
+        evalInput.input,
+        evalInput.output
+      )
+      result.scorerName = config.scorerName
+    } else {
+      result = await runEval(
+        config.scorerName,
+        evalInput,
+        config.judgeModel ?? undefined,
+        config.judgePrompt ?? undefined
+      )
+    }
 
     autoScores[config.scorerName] = {
       score: result.score,
@@ -77,7 +87,28 @@ export async function POST(req: Request) {
     }
   }
 
-  // Compute weighted average overall score
+  // Run composite scorers after individual ones
+  for (const config of configs) {
+    if ((config.type ?? "llm_judge") !== "composite") continue
+
+    try {
+      const compositeConfig = JSON.parse(config.judgePrompt ?? "{}")
+      const result = runCompositeEval(compositeConfig, autoScores)
+      result.scorerName = config.scorerName
+      autoScores[config.scorerName] = {
+        score: result.score,
+        reasoning: result.reasoning,
+      }
+      weightedScores.push({ score: result.score, weight: config.weight })
+    } catch {
+      autoScores[config.scorerName] = {
+        score: 0,
+        reasoning: "",
+        error: "Invalid composite scorer config",
+      }
+    }
+  }
+
   let overallScore: number | null = null
   if (weightedScores.length > 0) {
     const totalWeight = weightedScores.reduce((sum, ws) => sum + ws.weight, 0)

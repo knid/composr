@@ -162,6 +162,7 @@ export const evalConfigs = pgTable("eval_configs", {
     .notNull()
     .references(() => compositions.id),
   scorerName: text("scorer_name").notNull(),
+  type: text("type").notNull().default("llm_judge"),
   enabled: boolean("enabled").notNull().default(true),
   sampleRate: integer("sample_rate").notNull().default(20),
   judgeModel: text("judge_model").notNull().default("anthropic/claude-sonnet-4.6"),
