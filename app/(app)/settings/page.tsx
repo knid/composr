@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Key, Copy, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
+import { ProviderKeysSection } from "@/components/settings/provider-keys"
 
 export default function SettingsPage() {
   const [keys, setKeys] = useState<any[]>([])
@@ -87,6 +88,8 @@ export default function SettingsPage() {
           </Button>
         </div>
       </section>
+
+      <ProviderKeysSection />
 
       <section>
         <h2 className="text-sm font-semibold mb-3">SDK Quick Start</h2>
