@@ -20,6 +20,7 @@ interface Block {
   version: number
   tags: string[]
   updatedAt: string
+  kind?: string
 }
 
 export function BlockList({ initialBlocks, usageMap }: { initialBlocks: Block[]; usageMap: Record<string, string[]> }) {
@@ -27,6 +28,8 @@ export function BlockList({ initialBlocks, usageMap }: { initialBlocks: Block[];
   const [search, setSearch] = useState("")
   const [activeTags, setActiveTags] = useState<Set<string>>(new Set())
   const [newName, setNewName] = useState("")
+  const [newKind, setNewKind] = useState("prompt")
+  const [kindFilter, setKindFilter] = useState<"all" | "prompt" | "tool">("all")
   const [dialogOpen, setDialogOpen] = useState(false)
 
   // Edit state
@@ -46,7 +49,8 @@ export function BlockList({ initialBlocks, usageMap }: { initialBlocks: Block[];
   const filtered = blocks.filter((b) => {
     const matchesSearch = b.name.toLowerCase().includes(search.toLowerCase())
     const matchesTags = activeTags.size === 0 || (b.tags ?? []).some((t) => activeTags.has(t))
-    return matchesSearch && matchesTags
+    const matchesKind = kindFilter === "all" || (b.kind ?? "prompt") === kindFilter
+    return matchesSearch && matchesTags && matchesKind
   })
 
   function toggleTag(tag: string) {
@@ -62,11 +66,12 @@ export function BlockList({ initialBlocks, usageMap }: { initialBlocks: Block[];
     const res = await fetch("/api/blocks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName, content: "" }),
+      body: JSON.stringify({ name: newName, content: "", kind: newKind }),
     })
     const block = await res.json()
     setBlocks([block, ...blocks])
     setNewName("")
+    setNewKind("prompt")
     setDialogOpen(false)
   }
 
@@ -114,6 +119,22 @@ export function BlockList({ initialBlocks, usageMap }: { initialBlocks: Block[];
 
   return (
     <div>
+      <div className="flex gap-1 mb-3">
+        {(["all", "prompt", "tool"] as const).map((k) => (
+          <button
+            key={k}
+            onClick={() => setKindFilter(k)}
+            className={cn(
+              "px-3 py-1 text-xs font-medium rounded-md transition-colors",
+              kindFilter === k
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {k === "all" ? "All" : k === "tool" ? "Tools" : "Prompts"}
+          </button>
+        ))}
+      </div>
       <div className="flex items-center gap-3 mb-4">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -138,6 +159,17 @@ export function BlockList({ initialBlocks, usageMap }: { initialBlocks: Block[];
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && newName.trim() && createBlock()}
             />
+            <div>
+              <label className="text-xs text-muted-foreground">Type</label>
+              <select
+                value={newKind}
+                onChange={(e) => setNewKind(e.target.value)}
+                className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm mt-1"
+              >
+                <option value="prompt">Prompt Block</option>
+                <option value="tool">Tool Definition</option>
+              </select>
+            </div>
             <Button onClick={createBlock} disabled={!newName.trim()}>Create</Button>
           </DialogContent>
         </Dialog>
