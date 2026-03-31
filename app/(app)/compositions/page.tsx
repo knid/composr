@@ -3,10 +3,8 @@ import { compositions, scores, assemblyLogs } from "@/lib/schema"
 import { auth } from "@clerk/nextjs/server"
 import { eq, desc, gte, and, isNotNull } from "drizzle-orm"
 import { redirect } from "next/navigation"
-import Link from "next/link"
-import { GitBranch } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
 import { NewCompositionButton } from "@/components/compositions/new-composition-button"
+import { CompositionList } from "@/components/compositions/composition-list"
 
 export const dynamic = "force-dynamic"
 
@@ -44,52 +42,29 @@ export default async function CompositionsPage() {
     throughputByComp.set(a.compositionId, (throughputByComp.get(a.compositionId) ?? 0) + 1)
   }
 
+  const compositionItems = comps.map((comp) => ({
+    id: comp.id,
+    name: comp.name,
+    description: comp.description,
+    folder: comp.folder,
+    version: comp.version,
+    graph: comp.graph as { nodes: any[]; edges: any[] },
+    avgScore: (() => {
+      const arr = scoreByComp.get(comp.id)
+      return arr && arr.length > 0
+        ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length)
+        : null
+    })(),
+    throughput: throughputByComp.get(comp.id) ?? 0,
+  }))
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-lg font-semibold tracking-tight">Compositions</h1>
         <NewCompositionButton />
       </div>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        {comps.map((comp) => {
-          const graph = comp.graph as { nodes: any[]; edges: any[] }
-          const blockCount = graph.nodes.filter((n: any) => n.type === "block").length
-          const ifCount = graph.nodes.filter((n: any) => n.type?.startsWith("if")).length
-          return (
-            <Link key={comp.id} href={`/compositions/${comp.id}`}
-              className="rounded-lg border border-border bg-card p-3 transition-colors hover:border-primary/30">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <GitBranch className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-sm font-medium">{comp.name}</span>
-                </div>
-                <Badge variant="secondary" className="text-[10px]">v{comp.version}</Badge>
-              </div>
-              <p className="mt-1.5 text-xs text-muted-foreground">
-                {blockCount} blocks · {ifCount} IF nodes
-                {(() => {
-                  const scoreArr = scoreByComp.get(comp.id)
-                  const avgScore = scoreArr && scoreArr.length > 0
-                    ? Math.round(scoreArr.reduce((a: number, b: number) => a + b, 0) / scoreArr.length)
-                    : null
-                  const throughput = throughputByComp.get(comp.id) ?? 0
-                  return (
-                    <>
-                      {avgScore !== null && <> · <span className="text-success">{avgScore}/100</span></>}
-                      {throughput > 0 && <> · {throughput}/24h</>}
-                    </>
-                  )
-                })()}
-              </p>
-            </Link>
-          )
-        })}
-        {comps.length === 0 && (
-          <p className="col-span-full py-12 text-center text-sm text-muted-foreground">
-            No compositions yet. Create your first one.
-          </p>
-        )}
-      </div>
+      <CompositionList compositions={compositionItems} />
     </div>
   )
 }
