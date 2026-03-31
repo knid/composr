@@ -212,6 +212,19 @@ export const providerKeys = pgTable("provider_keys", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 })
 
+// webhooks
+export const webhooks = pgTable("webhooks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  teamId: text("team_id")
+    .notNull()
+    .references(() => teams.id),
+  url: text("url").notNull(),
+  events: jsonb("events").notNull().default([]),
+  enabled: boolean("enabled").notNull().default(true),
+  secret: text("secret"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+})
+
 // pipelines
 export const pipelines = pgTable("pipelines", {
   id: uuid("id").primaryKey().defaultRandom(),
