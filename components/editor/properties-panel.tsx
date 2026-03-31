@@ -651,6 +651,104 @@ function CompositionRefProperties({
   )
 }
 
+/* ─── Model Config Panel ─── */
+export function ModelConfigPanel({
+  metadata,
+  onMetadataChange,
+}: {
+  metadata: Record<string, any>
+  onMetadataChange: (metadata: Record<string, any>) => void
+}) {
+  const [env, setEnv] = useState<"dev" | "staging" | "prod">("dev")
+  const modelConfig = (metadata?.modelConfig ?? {}) as Record<string, any>
+  const envConfig = modelConfig[env] ?? {}
+
+  function updateEnvConfig(field: string, value: any) {
+    const updated = {
+      ...modelConfig,
+      [env]: { ...envConfig, [field]: value },
+    }
+    onMetadataChange({ ...metadata, modelConfig: updated })
+  }
+
+  return (
+    <div className="border-t border-border pt-3 mt-3">
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+        Model Config
+      </div>
+      <div className="flex gap-1 mb-3">
+        {(["dev", "staging", "prod"] as const).map((e) => (
+          <button
+            key={e}
+            onClick={() => setEnv(e)}
+            className={cn(
+              "px-2.5 py-1 text-[10px] font-medium rounded transition-colors",
+              env === e
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {e}
+          </button>
+        ))}
+      </div>
+      <div className="space-y-2">
+        <FieldLabel label="Model">
+          <Input
+            value={envConfig.model ?? ""}
+            onChange={(e) => updateEnvConfig("model", e.target.value)}
+            placeholder="anthropic/claude-sonnet-4-6"
+            className="h-7 text-xs"
+          />
+        </FieldLabel>
+        <div className="grid grid-cols-2 gap-2">
+          <FieldLabel label="Temperature">
+            <Input
+              type="number"
+              step="0.1"
+              min="0"
+              max="2"
+              value={envConfig.temperature ?? ""}
+              onChange={(e) => updateEnvConfig("temperature", parseFloat(e.target.value) || undefined)}
+              placeholder="0.7"
+              className="h-7 text-xs"
+            />
+          </FieldLabel>
+          <FieldLabel label="Max Tokens">
+            <Input
+              type="number"
+              value={envConfig.maxTokens ?? ""}
+              onChange={(e) => updateEnvConfig("maxTokens", parseInt(e.target.value) || undefined)}
+              placeholder="2048"
+              className="h-7 text-xs"
+            />
+          </FieldLabel>
+        </div>
+        <FieldLabel label="Top P">
+          <Input
+            type="number"
+            step="0.1"
+            min="0"
+            max="1"
+            value={envConfig.topP ?? ""}
+            onChange={(e) => updateEnvConfig("topP", parseFloat(e.target.value) || undefined)}
+            placeholder="1.0"
+            className="h-7 text-xs"
+          />
+        </FieldLabel>
+        <FieldLabel label="Stop Sequences">
+          <Input
+            value={(envConfig.stopSequences ?? []).join(", ")}
+            onChange={(e) => updateEnvConfig("stopSequences", e.target.value.split(",").map((s: string) => s.trim()).filter(Boolean))}
+            placeholder="comma-separated"
+            className="h-7 text-xs"
+          />
+        </FieldLabel>
+      </div>
+    </div>
+  )
+}
+
 /* ─── Shared ─── */
 function FieldLabel({ label, children }: { label: string; children: React.ReactNode }) {
   return (

@@ -33,6 +33,7 @@ export default async function CompositionEditorPage({
       initialNodes={graph.nodes}
       initialEdges={graph.edges}
       contextSchema={comp.contextSchema as { name: string; type: "string" | "boolean" | "enum"; values?: string[] }[]}
+      metadata={comp.metadata as Record<string, any>}
     />
   )
 }

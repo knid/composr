@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { FlowCanvas, type FlowCanvasHandle } from "@/components/editor/flow-canvas"
 import { NodePalette } from "@/components/editor/node-palette"
-import { PropertiesPanel } from "@/components/editor/properties-panel"
+import { PropertiesPanel, ModelConfigPanel } from "@/components/editor/properties-panel"
 import { PreviewPanel } from "@/components/editor/preview-panel"
 import { ContextSchemaEditor, type ContextField } from "@/components/editor/context-schema-editor"
 import { EvalConfigPanel } from "./eval-config-panel"
@@ -30,6 +30,7 @@ interface CompositionEditorProps {
   initialNodes: Node[]
   initialEdges: Edge[]
   contextSchema: ContextField[]
+  metadata: Record<string, any>
 }
 
 export function CompositionEditor({
@@ -39,6 +40,7 @@ export function CompositionEditor({
   initialNodes,
   initialEdges,
   contextSchema: initialContextSchema,
+  metadata: initialMetadata,
 }: CompositionEditorProps) {
   const router = useRouter()
   const [dirty, setDirty] = useState(false)
@@ -50,6 +52,7 @@ export function CompositionEditor({
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
   const [blocks, setBlocks] = useState<BlockInfo[]>([])
   const [contextSchema, setContextSchema] = useState<ContextField[]>(initialContextSchema ?? [])
+  const [metadata, setMetadata] = useState<Record<string, any>>(initialMetadata ?? {})
   const [previewOpen, setPreviewOpen] = useState(true)
   const [liveNodes, setLiveNodes] = useState<Node[]>(initialNodes)
   const [liveEdges, setLiveEdges] = useState<Edge[]>(initialEdges)
@@ -142,6 +145,12 @@ export function CompositionEditor({
     setDirty(true)
   }, [])
 
+  /* Metadata change */
+  const onMetadataChange = useCallback((m: Record<string, any>) => {
+    setMetadata(m)
+    setDirty(true)
+  }, [])
+
   /* Save */
   async function save() {
     setSaving(true)
@@ -151,6 +160,7 @@ export function CompositionEditor({
       body: JSON.stringify({
         graph: graphRef.current,
         contextSchema,
+        metadata,
       }),
     })
     if (res.ok) {
@@ -333,6 +343,20 @@ export function CompositionEditor({
             onClose={() => setSelectedNode(null)}
             onBlockSaved={refreshBlocks}
           />
+        )}
+
+        {/* Right: Composition panel with model config (when no node is selected) */}
+        {!selectedNode && (
+          <div className="flex h-full w-[264px] flex-col border-l border-border bg-card/50">
+            <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Composition
+              </span>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3">
+              <ModelConfigPanel metadata={metadata} onMetadataChange={onMetadataChange} />
+            </div>
+          </div>
         )}
       </div>
 
