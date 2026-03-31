@@ -16,12 +16,18 @@ interface GraphEdge {
 }
 
 interface BlockLookup {
-  [blockId: string]: { content: string; name: string; role?: string | null }
+  [blockId: string]: { content: string; name: string; role?: string | null; kind?: string; description?: string | null }
 }
 
 export interface Message {
   role: string
   content: string
+}
+
+interface ToolDefinition {
+  name: string
+  description: string
+  input_schema: Record<string, any>
 }
 
 interface AssemblyResult {
@@ -32,6 +38,7 @@ interface AssemblyResult {
   tokenCount: number
   errors: string[]
   variantId: string | null
+  tools: ToolDefinition[]
 }
 
 interface CompositionLookup {
@@ -73,6 +80,7 @@ export function assembleGraph(
   const errors: string[] = []
   const visited = new Set<string>()
   let variantId: string | null = null
+  const tools: ToolDefinition[] = []
 
   // Context schema validation
   if (options?.contextSchema) {
@@ -130,6 +138,27 @@ export function assembleGraph(
           currentRoleContent.push(content)
         } else {
           errors.push(`Block not found: ${blockId}`)
+        }
+        break
+      }
+
+      case "tool": {
+        const blockId = node.data.blockId as string
+        const block = blocks[blockId]
+        if (block) {
+          try {
+            const inputSchema = JSON.parse(block.content)
+            tools.push({
+              name: block.name,
+              description: block.description ?? "",
+              input_schema: inputSchema,
+            })
+          } catch {
+            errors.push(`Invalid tool schema for block: ${blockId}`)
+          }
+          resolvedBlocks.push(block.name)
+        } else {
+          errors.push(`Tool block not found: ${blockId}`)
         }
         break
       }
@@ -295,6 +324,7 @@ export function assembleGraph(
     tokenCount,
     errors,
     variantId,
+    tools,
   }
 }
 
