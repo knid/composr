@@ -31,7 +31,7 @@ export async function POST(req: Request) {
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const body = await req.json()
-  const { name, description, graph, contextSchema } = body
+  const { name, description, folder, graph, contextSchema } = body
 
   const [composition] = await db
     .insert(compositions)
@@ -39,6 +39,7 @@ export async function POST(req: Request) {
       teamId: orgId,
       name,
       description: description ?? "",
+      folder: folder ?? null,
       graph: graph ?? DEFAULT_GRAPH,
       contextSchema: contextSchema ?? [],
     })
