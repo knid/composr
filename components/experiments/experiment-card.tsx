@@ -1,3 +1,5 @@
+import Link from "next/link"
+import { ArrowRight } from "lucide-react"
 import { ConfidenceBadge } from "./confidence-badge"
 
 interface Variant {
@@ -18,6 +20,7 @@ interface ExperimentCardProps {
 }
 
 export function ExperimentCard({
+  compositionId,
   compositionName,
   durationDays,
   confidenceLevel,
@@ -63,8 +66,16 @@ export function ExperimentCard({
       </div>
 
       {winner && (
-        <div className="mt-3 rounded-md border border-success/20 bg-success/5 px-3 py-2 text-[11px] text-success">
-          Promote <span className="font-semibold">{winner.name}</span> — statistically significant winner at {confidenceLevel}% confidence.
+        <div className="mt-3 rounded-md border border-success/20 bg-success/5 px-3 py-2">
+          <div className="text-[11px] text-success">
+            <span className="font-semibold">{winner.name}</span> is the statistically significant winner at {confidenceLevel}% confidence.
+          </div>
+          <Link
+            href={`/compositions/${compositionId}`}
+            className="mt-2 inline-flex items-center gap-1 rounded-md bg-success/10 px-2.5 py-1 text-[10px] font-medium text-success hover:bg-success/20 transition-colors"
+          >
+            Promote Winner <ArrowRight className="h-3 w-3" />
+          </Link>
         </div>
       )}
     </div>
