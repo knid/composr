@@ -1,0 +1,1 @@
+ALTER TABLE "blocks" ADD COLUMN "kind" text DEFAULT 'prompt' NOT NULL;

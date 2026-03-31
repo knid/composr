@@ -44,6 +44,7 @@ export const blocks = pgTable("blocks", {
   description: text("description"),
   content: text("content").notNull().default(""),
   role: text("role"), // "system" | "user" | "assistant" | null (null = inherits/default "system")
+  kind: text("kind").notNull().default("prompt"), // "prompt" | "tool"
   version: integer("version").notNull().default(1),
   tags: jsonb("tags").notNull().default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),
