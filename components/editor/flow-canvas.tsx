@@ -199,7 +199,7 @@ const FlowCanvasInner = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
           fitView
           proOptions={{ hideAttribution: true }}
           className="bg-background"
-          connectionLineStyle={{ stroke: "#7c3aed", strokeWidth: 2 }}
+          connectionLineStyle={{ stroke: "#3b82f6", strokeWidth: 2 }}
           defaultEdgeOptions={{
             type: "smoothstep",
             animated: true,

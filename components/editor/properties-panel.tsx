@@ -61,8 +61,8 @@ function NodeTypeIcon({ type }: { type: string }) {
     case "ifPercentage": return <Percent className={cn(cls, "text-primary")} />
     case "ifExpression": return <Code2 className={cn(cls, "text-primary")} />
     case "merge": return <Merge className={cn(cls, "text-primary")} />
-    case "start": return <Play className={cn(cls, "text-success")} />
-    case "promptOutput": return <Flag className={cn(cls, "text-destructive")} />
+    case "start": return <Play className={cn(cls, "text-primary")} />
+    case "promptOutput": return <Flag className={cn(cls, "text-success")} />
     default: return null
   }
 }

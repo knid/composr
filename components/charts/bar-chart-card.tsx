@@ -8,7 +8,7 @@ interface BarChartCardProps {
   color?: string
 }
 
-export function BarChartCard({ title, data, color = "#7c3aed" }: BarChartCardProps) {
+export function BarChartCard({ title, data, color = "#3b82f6" }: BarChartCardProps) {
   return (
     <div className="rounded-xl border border-border bg-card p-4">
       <h3 className="text-xs font-semibold text-muted-foreground mb-3">{title}</h3>

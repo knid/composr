@@ -8,7 +8,7 @@ interface AreaChartCardProps {
   color?: string
 }
 
-export function AreaChartCard({ title, data, color = "#7c3aed" }: AreaChartCardProps) {
+export function AreaChartCard({ title, data, color = "#3b82f6" }: AreaChartCardProps) {
   return (
     <div className="rounded-xl border border-border bg-card p-4">
       <h3 className="text-xs font-semibold text-muted-foreground mb-3">{title}</h3>

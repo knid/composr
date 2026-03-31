@@ -25,14 +25,14 @@ export function MonacoBlockEditor({
       base: "vs-dark",
       inherit: true,
       rules: [
-        { token: "variable.template", foreground: "7c3aed", fontStyle: "bold" },
+        { token: "variable.template", foreground: "3b82f6", fontStyle: "bold" },
       ],
       colors: {
         "editor.background": "#0a0a0a",
         "editor.foreground": "#a1a1aa",
         "editor.lineHighlightBackground": "#18181b",
         "editor.selectionBackground": "#27272a",
-        "editorCursor.foreground": "#7c3aed",
+        "editorCursor.foreground": "#3b82f6",
         "editorLineNumber.foreground": "#3f3f46",
         "editorLineNumber.activeForeground": "#71717a",
       },
